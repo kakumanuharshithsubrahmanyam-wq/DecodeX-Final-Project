@@ -60,7 +60,8 @@ Record results in your run log; do not claim live verification unless each step 
 
 | Area | Result |
 |------|--------|
-| Supabase `rtgs-dev` project | **BLOCKED** — org free active project limit (2/2) |
+| Supabase `rtgs-dev` project | **PASS** — ref `fsnqpcomhtseoffwgfub` (migrations + seed + private bucket) |
+| Local `backend/.env` | **BLOCKED** — run `backend/scripts/bootstrap_local_env.sh` |
 | Live Auth / Postgres / Storage | **NOT TESTED** |
 | Playwright demo E2E | **3 tests** — `npm run test:e2e:demo` |
 | Render deploy | **BLOCKED** — `render login` required |

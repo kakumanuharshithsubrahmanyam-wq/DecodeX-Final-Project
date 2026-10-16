@@ -1,6 +1,6 @@
 # RTGS Deployment Readiness
 
-**Phase 7.5:** Integrated deploy not completed — Supabase `rtgs-dev` blocked by org free-project limit; Render CLI not logged in. See [PHASE7_5_VERIFICATION.md](./PHASE7_5_VERIFICATION.md).
+**Phase 7.5:** `rtgs-dev` Supabase project ref **`fsnqpcomhtseoffwgfub`** — schema migrated; local env and Render/Vercel staging pending. See [PHASE7_5_VERIFICATION.md](./PHASE7_5_VERIFICATION.md).
 
 ## Prerequisites
 
@@ -43,7 +43,7 @@ When ready:
 
 ```bash
 # Link your RTGS dev project only
-supabase link --project-ref YOUR_RTGS_DEV_REF
+supabase link --project-ref fsnqpcomhtseoffwgfub
 
 # Inspect remote migration state before push
 supabase migration list

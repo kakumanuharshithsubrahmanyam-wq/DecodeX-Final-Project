@@ -35,7 +35,7 @@ Assign `community_moderator` only. This role must **not** grant access to privat
 
 ## Phase 7.5 — dev Supabase project
 
-Create a dedicated **`rtgs-dev`** Supabase project (not TEAM-DDMM or other apps). If creation fails with a free-tier limit, pause an unused active project in the Supabase dashboard first. Apply migrations per [supabase/scripts/apply_all_migrations.md](../../supabase/scripts/apply_all_migrations.md).
+Dedicated dev project **`rtgs-dev`** — reference **`fsnqpcomhtseoffwgfub`**, URL `https://fsnqpcomhtseoffwgfub.supabase.co`. Do not use TEAM-DDMM or printkiosk. Migrations applied per [docs/PHASE7_5_VERIFICATION.md](../../docs/PHASE7_5_VERIFICATION.md). Local secrets: [backend/scripts/bootstrap_local_env.sh](../scripts/bootstrap_local_env.sh).
 
 ## Local development / tests
 
