@@ -1,0 +1,143 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { api } from '@/lib/api-client';
+import type { MeProfile } from '@/lib/types';
+import { getSupabase, onAuthStateChange } from '@/lib/auth';
+import { canUseLiveApi, isExplicitDemoMode, isSupabaseConfigured } from '@/lib/config';
+
+export type WorkspaceRole = 'Citizen' | 'Officer' | 'Admin' | 'Moderator';
+
+export type AuthStatus = 'loading' | 'guest' | 'authenticated';
+
+type AuthContextValue = {
+  status: AuthStatus;
+  session: Session | null;
+  profile: MeProfile | null;
+  workspace: WorkspaceRole;
+  apiRole: string | null;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  supabaseReady: boolean;
+  liveApi: boolean;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function mapApiRoleToWorkspace(role: string): WorkspaceRole {
+  switch (role) {
+    case 'officer':
+      return 'Officer';
+    case 'department_administrator':
+    case 'platform_administrator':
+    case 'administrator':
+      return 'Admin';
+    case 'community_moderator':
+      return 'Moderator';
+    default:
+      return 'Citizen';
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<MeProfile | null>(null);
+  const supabaseReady = isSupabaseConfigured();
+
+  const refreshProfile = useCallback(async () => {
+    if (!session) {
+      setProfile(null);
+      return;
+    }
+    try {
+      const res = await api.me();
+      setProfile(res.data);
+    } catch {
+      setProfile(null);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (!supabaseReady) {
+      if (isExplicitDemoMode()) {
+        setStatus('authenticated');
+        setProfile({
+          id: '00000000-0000-4000-8000-000000000001',
+          email: 'demo@rtgs.local',
+          full_name: 'Demo Citizen',
+          phone: null,
+          role: 'citizen',
+          permissions: [],
+          department_ids: [],
+          locale: 'en',
+        });
+      } else {
+        setStatus('guest');
+        setProfile(null);
+      }
+      setSession(null);
+      return;
+    }
+    const supabase = getSupabase();
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setStatus(data.session ? 'authenticated' : 'guest');
+    });
+    const sub = onAuthStateChange((s) => {
+      setSession(s);
+      setStatus(s ? 'authenticated' : 'guest');
+    });
+    return () => sub.data.subscription.unsubscribe();
+  }, [supabaseReady]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      void refreshProfile();
+    } else {
+      setProfile(null);
+    }
+  }, [status, session, refreshProfile]);
+
+  const signOut = useCallback(async () => {
+    if (supabaseReady) {
+      await getSupabase().auth.signOut();
+    }
+    setSession(null);
+    setProfile(null);
+    setStatus('guest');
+  }, [supabaseReady]);
+
+  const workspace = mapApiRoleToWorkspace(profile?.role ?? 'citizen');
+  const liveApi = canUseLiveApi(Boolean(session));
+
+  const value = useMemo(
+    () => ({
+      status,
+      session,
+      profile,
+      workspace,
+      apiRole: profile?.role ?? null,
+      signOut,
+      refreshProfile,
+      supabaseReady,
+      liveApi,
+    }),
+    [status, session, profile, workspace, signOut, refreshProfile, supabaseReady, liveApi],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
+}

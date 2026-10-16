@@ -6,7 +6,7 @@ RTGS: citizen-centric urban governance — responsive web first, API-driven data
 
 - React 18+, TypeScript, Vite, Tailwind CSS, shadcn/ui.
 - Source under `frontend/` (standard Vite layout).
-- **Current repo state (Phase 4):** Claude UI is **still not imported**. Shared helpers live in `frontend/src/lib/` (`api-client.ts`, `auth.ts`, `types.ts`). Wire Claude's screens to these modules when the Vite app arrives.
+- **Current repo state:** Supplied UI lives in `frontend/src/RtgsPortal.tsx` with auth/i18n/API layers in `src/auth`, `src/data`, `src/lib`, `src/i18n`. Community posts remain local-only until a backend community API exists.
 
 - Mobile-friendly layouts; PWA manifest optional in Phase 4 — **not** a native app in MVP.
 

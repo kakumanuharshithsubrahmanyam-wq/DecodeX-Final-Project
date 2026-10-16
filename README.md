@@ -2,7 +2,7 @@
 
 Citizen-centric digital urban governance: AI-assisted grievance redressal, SLA-aware operations, and staged multichannel intake (web first).
 
-**Frontend status:** **`rtgs-frontend.zip` not found in the workspace** — supplied UI must be added to the repo root before merge into `frontend/`. Shared API/auth helpers exist under `frontend/src/lib/`. Live Supabase smoke **not verified** without dev `backend/.env`.
+**Frontend:** Vite app in `frontend/` (integrated from `rtgs-frontend.zip`), Supabase Auth, English/Telugu i18n, API client. Set `VITE_*` in `frontend/.env.local` and run `npm run dev`. Live Supabase E2E **not verified** in CI without dev credentials.
 
 RTGS is **not** presented as an official government service unless your deployer explicitly configures and authorizes that relationship.
 

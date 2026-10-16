@@ -23,7 +23,7 @@ Exit code 0 only if health + create grievance succeed against configured Postgre
 
 ## Manual E2E (real Supabase Auth) — checklist
 
-1. **Citizen sign-in** via Supabase Auth in the frontend (once UI exists).
+1. **Citizen sign-in** via Supabase Auth in the frontend (`/login`).
 2. **Submit grievance** with vague text → receive reference ID; verify `needs_information` or follow-up questions from `POST .../analyze`.
 3. **Submit additional info** → status moves toward review.
 4. **Attachment** (optional): upload-url → PUT to signed URL → complete → download-url as same user.

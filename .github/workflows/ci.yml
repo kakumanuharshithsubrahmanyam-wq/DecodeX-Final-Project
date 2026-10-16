@@ -25,3 +25,22 @@ jobs:
           APP_ENV: test
           DATABASE_URL: sqlite+aiosqlite:///:memory:
           AUTH_DEV_BYPASS: "true"
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_DEMO_MODE: "true"
+          VITE_API_BASE_URL: http://127.0.0.1:8000
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder

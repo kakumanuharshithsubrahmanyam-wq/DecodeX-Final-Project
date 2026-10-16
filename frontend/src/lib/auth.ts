@@ -2,7 +2,7 @@
  * Supabase Auth session helper for browser use (anon/publishable key only).
  * Requires @supabase/supabase-js once Claude's app adds package.json.
  */
-import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
+import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 
 let client: SupabaseClient | null = null;
 
@@ -25,4 +25,27 @@ export async function getAccessToken(): Promise<string | null> {
 
 export function onAuthStateChange(cb: (session: Session | null) => void) {
   return getSupabase().auth.onAuthStateChange((_event, session) => cb(session));
+}
+
+export async function signInWithPassword(email: string, password: string) {
+  return getSupabase().auth.signInWithPassword({ email, password });
+}
+
+export async function signUpCitizen(email: string, password: string, fullName?: string) {
+  return getSupabase().auth.signUp({
+    email,
+    password,
+    options: {
+      data: fullName ? { full_name: fullName } : undefined,
+    },
+  });
+}
+
+export async function sendPasswordReset(email: string) {
+  const redirectTo = `${window.location.origin}/login`;
+  return getSupabase().auth.resetPasswordForEmail(email, { redirectTo });
+}
+
+export async function signOut() {
+  return getSupabase().auth.signOut();
 }
