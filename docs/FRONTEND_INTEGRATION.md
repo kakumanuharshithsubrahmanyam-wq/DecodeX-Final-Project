@@ -1,66 +1,86 @@
-# Frontend integration guide (Claude UI)
+# Frontend Integration Guide (Claude UI)
 
-This document summarizes how the Claude-built React app should integrate with RTGS backend and Supabase.
+RTGS: citizen-centric urban governance — responsive web first, API-driven data, Supabase Auth only for identity.
 
-## Stack
+## Stack and placement
 
-- React 18+, TypeScript, Vite, Tailwind CSS, shadcn/ui where it fits existing patterns.
-- Place all app source under `frontend/` (standard Vite layout: `src/`, `index.html`, etc.).
+- React 18+, TypeScript, Vite, Tailwind CSS, shadcn/ui.
+- Source under `frontend/` (standard Vite layout).
+- Mobile-friendly layouts; PWA manifest optional in Phase 4 — **not** a native app in MVP.
 
 ## Environment
 
 From `frontend/.env.example`:
 
-- `VITE_API_BASE_URL` — FastAPI origin.
-- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — Auth only (publishable key).
+- `VITE_API_BASE_URL`
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key only)
 
-Never embed the Supabase service role key in the frontend.
+## Authentication and roles
 
-## Authentication
+1. Supabase Auth for register/login/session refresh.
+2. Attach `Bearer` token to all API calls.
+3. `GET /api/v1/me` → `role` and `permissions` for route guards.
 
-1. Use `@supabase/supabase-js` for sign-up, sign-in, sign-out, and session refresh.
-2. Read `session.access_token` and attach to every API call:
+Roles: `citizen`, `officer`, `department_administrator`, `platform_administrator`, `community_moderator`.
 
-```typescript
-headers: {
-  Authorization: `Bearer ${accessToken}`,
-  'Content-Type': 'application/json',
-}
-```
+Treat legacy `administrator` as `platform_administrator` in UI labels.
 
-3. Route guards by `GET /api/v1/me` → `data.role` (`citizen` | `officer` | `administrator`).
+## Data access rules
 
-## Data fetching
+| Concern | Source |
+|---------|--------|
+| Grievances, AI, SLA, feedback, admin | FastAPI |
+| Session | Supabase Auth |
+| Realtime timeline | **Not MVP** — poll track endpoint or refresh on focus |
 
-- **Grievances, AI, assignments, analytics:** FastAPI only (`docs/API_CONTRACT.md`).
-- Do not write grievances directly to Supabase tables from the browser (audit + AI orchestration live on the API).
+Do not write grievances directly to Postgres from the browser.
 
-## UX requirements
+## UX patterns (modules A–H)
 
-- Show **reference_id** prominently after submit (copy button).
-- Label AI fields: “Suggested by AI” vs official category/department/priority (officer-editable).
-- Handle API error envelope (`error.code`, `error.message`, `error.details`).
-- List screens: loading skeleton, empty state, retry on 5xx.
-- Dates: format ISO timestamps for locale in UI; store/transmit ISO 8601 unchanged.
+1. **Reference ID** — prominent after submit; copy button; use on track page.
+2. **Three-layer labeling**
+   - General guidance (chatbot help text)
+   - “Suggested by AI” (category, dept, priority, image hints)
+   - “Official” (officer-set fields, status, remarks on citizen track = public messages only)
+3. **Lifecycle** — show citizen-friendly labels mapped from status (see API contract).
+4. **Needs information** — dedicated UI when status is `needs_information`.
+5. **SLA** — show due dates and warnings; never promise exact resolution dates from AI.
+6. **Feedback** — form only when status `resolved`/`closed`; one submission.
+7. **Notifications** — inbox + preferences screen (MVP in-app only).
+8. **Attachments** — Phase Next; show placeholder or hide until API exists.
+9. **Chatbot** — Phase Next; confirm before final grievance submit.
+10. **Community / WhatsApp / voice** — hide or “coming soon” unless backend feature flag enabled.
 
 ## Suggested routes
 
-| Path | Audience | Notes |
-|------|----------|--------|
-| `/login`, `/register` | Public | Supabase Auth |
-| `/dashboard` | Citizen | My grievances |
-| `/grievances/new` | Citizen | Create + follow-up flow |
-| `/grievances/:id` | Citizen / officer | Detail + timeline |
-| `/officer/queue` | Officer | Assigned / department cases |
-| `/admin/departments` | Admin | Department CRUD |
-| `/admin/analytics` | Admin | Overview metrics |
+| Path | Audience |
+|------|----------|
+| `/`, `/login`, `/register` | Public |
+| `/dashboard` | Citizen — my grievances |
+| `/grievances/new` | Citizen — submit + follow-ups |
+| `/track/:referenceId` | Citizen — optional public track by ref + auth |
+| `/grievances/:id` | Citizen / officer |
+| `/officer/queue` | Officer |
+| `/dept/queue` | Department admin (Next) |
+| `/admin/departments`, `/admin/categories`, `/admin/sla` | Platform admin |
+| `/admin/analytics` | Admin dashboards |
+| `/notifications`, `/settings/notifications` | All authenticated |
+| `/community/*` | Future — do not ship until API marked implemented |
 
-## Attachments (Phase 4)
+## API client
 
-1. Request signed URL from API.
-2. PUT file to signed URL.
-3. Confirm completion endpoint when implemented.
+- Central `apiClient` with auth header injection and error envelope parsing.
+- Phase 4: optional OpenAPI-generated types from backend.
+
+## Accessibility and i18n
+
+- Plan for Telugu + English copy hooks (`locale` from `/me`).
+- MVP may ship English UI with backend locale field ready.
+
+## Disclaimer in UI footer
+
+Platform is under development; not an official government portal unless configured and authorized by deployer.
 
 ## CORS
 
-Backend will allow local Vite origins in development (`http://localhost:5173`). Production: Vercel domain added on Render env `CORS_ORIGINS`.
+Dev: `http://localhost:5173`. Production: Vercel URL in backend `CORS_ORIGINS`.

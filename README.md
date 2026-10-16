@@ -1,57 +1,65 @@
 # RTGS — Real-Time Governance Society
 
-AI-assisted government grievance intake, routing, prioritization, and resolution tracking.
+Citizen-centric digital urban governance: AI-assisted grievance redressal, SLA-aware operations, and staged multichannel intake (web first).
 
-**Phase 1 status:** Repository foundation, documentation, API contract, and draft database schema. Application code begins in Phase 2.
+**Phase 1 (redesign) status:** Architecture, data model, API contract, and SQL migrations documented. **No runnable app yet.** Phase 2 implements FastAPI and applies migrations to a dev Supabase project.
+
+RTGS is **not** presented as an official government service unless your deployer explicitly configures and authorizes that relationship.
 
 ## Directory structure
 
 ```
 .
-├── frontend/                 # React + Vite (Claude UI lands here)
-│   └── .env.example
-├── backend/                  # FastAPI + AI pipeline (Phase 2+)
-│   └── .env.example
+├── frontend/                 # Claude UI (React + Vite)
+├── backend/                  # FastAPI + AI (Phase 2+)
 ├── supabase/
-│   ├── migrations/           # PostgreSQL schema
-│   └── seed.sql              # Sample departments (dev)
+│   ├── migrations/           # Apply in filename order
+│   └── seed.sql
 ├── docs/
-│   └── API_CONTRACT.md       # Integration contract for frontend
+│   ├── API_CONTRACT.md
+│   ├── FRONTEND_INTEGRATION.md
+│   ├── FEATURE_MATRIX.md
+│   ├── DATA_MODEL.md
+│   └── INTEGRATIONS.md
 ├── PROJECT_SPEC.md
 ├── ARCHITECTURE.md
-├── DEVELOPMENT_PLAN.md
-└── README.md
+└── DEVELOPMENT_PLAN.md
 ```
 
-## Prerequisites (upcoming phases)
+## Migrations
 
-- Node.js 20+ (frontend)
-- Python 3.11+ (backend)
-- Supabase project (Postgres + Auth)
-- Optional: Supabase CLI for local migration workflow
+1. `20251016120000_initial_schema.sql`
+2. `20251016130000_platform_redesign_extensions.sql`
 
-## Setup (Phase 2+)
+Do not edit applied migrations; add new files for schema changes.
 
-1. Copy environment templates:
-   - `frontend/.env.example` → `frontend/.env.local`
-   - `backend/.env.example` → `backend/.env`
-2. Fill placeholders from your Supabase dashboard (never commit real secrets).
-3. Apply migrations from `supabase/migrations/` to your dev project.
-4. Run backend and frontend per instructions added in Phase 2.
-
-## Documentation
+## Documentation index
 
 | Document | Purpose |
 |----------|---------|
-| [PROJECT_SPEC.md](./PROJECT_SPEC.md) | Product scope, roles, MVP vs deferred |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, auth, deployment |
-| [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) | Four-phase delivery plan |
-| [docs/API_CONTRACT.md](./docs/API_CONTRACT.md) | REST API for Claude/Cursor integration |
+| [PROJECT_SPEC.md](./PROJECT_SPEC.md) | Vision, modules A–H, MVP vs staged |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Components, AI pipeline, security |
+| [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) | Four-phase plan |
+| [docs/FEATURE_MATRIX.md](./docs/FEATURE_MATRIX.md) | Features, roles, acceptance criteria |
+| [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) | Entities, lifecycle, RLS plan |
+| [docs/API_CONTRACT.md](./docs/API_CONTRACT.md) | REST contract (MVP/Next/Future tags) |
+| [docs/INTEGRATIONS.md](./docs/INTEGRATIONS.md) | WhatsApp, notifications, AI providers |
+
+## Setup (Phase 2+)
+
+1. Copy `frontend/.env.example` → `frontend/.env.local`
+2. Copy `backend/.env.example` → `backend/.env`
+3. Apply Supabase migrations; run `seed.sql` on dev only
+4. Start backend and frontend (instructions added in Phase 2)
 
 ## Workflow
 
-- **Claude:** UI/UX in `frontend/`
+- **Claude:** frontend UI/UX in `frontend/`
 - **Cursor:** backend, database, AI, tests, deployment
+
+## Git history
+
+Initial foundation commit `9903103` preserved; redesign commits follow on `main`.
 
 ## License
 

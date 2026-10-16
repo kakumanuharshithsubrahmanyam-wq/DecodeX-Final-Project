@@ -1,105 +1,102 @@
-# RTGS Development Plan (Accelerated)
+# RTGS Development Plan (Accelerated, Four Phases)
 
 ## Workflow split
 
 | Owner | Responsibility |
 |-------|----------------|
-| **Claude** | React + TypeScript + Vite + Tailwind + shadcn/ui — citizen, officer, and admin UI/UX. |
-| **Cursor** | Git, FastAPI backend, Supabase schema/RLS, AI pipeline, APIs, tests, deployment config. |
+| **Claude** | React + TypeScript + Vite + Tailwind + shadcn/ui — citizen, officer, admin UX |
+| **Cursor** | Git, FastAPI, Supabase, AI pipeline, integrations, tests, deployment |
 
-The Claude-generated frontend is imported into `frontend/` and wired to the API contract in `docs/API_CONTRACT.md`.
+Single repo; contract: [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
 
 ---
 
-## Phase 1 — Foundation (current)
+## Phase 1 — Foundation and redesign ✅
 
-**Goal:** Repository structure, Git, integration blueprint, database blueprint, environment templates, architecture docs.
+**Goal:** Product vision, architecture, data model plan, API contract, integration interfaces, migrations as SQL drafts (not applied live).
 
 **Deliverables:**
 
-- Monorepo layout (`frontend/`, `backend/`, `supabase/`, `docs/`).
-- `.gitignore`, README, PROJECT_SPEC, ARCHITECTURE, DEVELOPMENT_PLAN.
-- API contract and Supabase draft migration (not applied to live project).
-- `.env.example` files for frontend and backend.
+- Updated PROJECT_SPEC, ARCHITECTURE, DEVELOPMENT_PLAN, README
+- docs: API_CONTRACT, FRONTEND_INTEGRATION, FEATURE_MATRIX, DATA_MODEL, INTEGRATIONS
+- Migrations: initial + `20251016130000_platform_redesign_extensions.sql`
+- Env examples; `.gitignore`
 
-**Acceptance:**
-
-- No secrets in Git; initial commit if safe.
-- Clear Phase 2 entry criteria documented.
-
-**Status:** Complete when Phase 1 report is delivered.
+**Acceptance:** Documented MVP vs deferred; no full app implementation; Git history preserved.
 
 ---
 
-## Phase 2 — Backend core + database
+## Phase 2 — Backend core + database (MVP spine)
 
-**Goal:** Runnable FastAPI app, Supabase migration applied (dev project), auth middleware, core grievance CRUD.
+**Goal:** Runnable API, applied migrations on dev Supabase, auth, grievance CRUD, lifecycle, SLA hooks, in-app notifications.
 
 **Tasks:**
 
-1. Initialize `backend/` (FastAPI, Pydantic v2, SQLAlchemy 2 async, Alembic or Supabase migrations as source of truth).
-2. Apply `supabase/migrations/*` to dev Supabase; seed departments.
-3. Implement JWT validation (Supabase JWKS or JWT secret per environment).
-4. Implement endpoints: auth profile, grievances CRUD, events, assignments (minimal).
-5. RLS policies aligned with FastAPI service role vs user-scoped client usage.
-6. Pytest for auth and grievance permissions.
+1. FastAPI scaffold: settings, health, JWT middleware, error envelope.
+2. Apply migrations in order; run seed (departments, categories, SLA policies).
+3. Implement MVP endpoints (see API contract tags): `/me`, grievances CRUD, track/history, status transitions, assignments, categories list, SLA on grievance, notifications list, feedback submit.
+4. State machine tests; permission tests per role.
+5. Rules-based AI: analyze + follow-up (minimal).
+6. RLS policy completion for new tables; document service-role usage boundaries.
 
 **Acceptance:**
 
-- Citizen can create/list own grievances via API with valid JWT.
-- Officer cannot access unassigned grievances outside department rules.
-- OpenAPI matches `docs/API_CONTRACT.md` (version noted in changelog if drift).
+- Citizen submit → reference ID → timeline events → SLA due dates visible.
+- Officer cannot read unrelated citizen grievances.
+- Invalid status transition returns 409.
+- No endpoint marked Future is required to pass MVP demo.
 
-**Dependencies:** Supabase dev project, env files from examples.
+**Dependencies:** Dev Supabase project; `.env` from examples.
 
 ---
 
-## Phase 3 — AI pipeline + officer/admin flows
+## Phase 3 — AI depth, officer/admin ops, delivery prep
 
-**Goal:** Analysis pipeline, follow-ups, recommendations, officer status workflow, notifications.
+**Goal:** Richer AI, department admin flows, attachment pipeline, notification router stubs, duplicate detection prep.
 
 **Tasks:**
 
-1. Modular `ai/` package: rules engine + optional LLM adapter.
-2. Endpoints: analyze, follow-up answers, re-analyze, recommendations.
-3. Persist `ai_analyses`; link to grievances and events.
-4. Officer assignment and status transition rules with audit logs.
-5. In-app notifications on key transitions.
-6. Integration tests for analysis idempotency and human-review flags.
+1. AI pipeline steps 2–11 (language, duplicates, image adapter interface).
+2. Department administrator endpoints and queues.
+3. Attachment signed URLs + Storage policies.
+4. Reopen/review; escalation automation on SLA breach.
+5. Analytics MVP dashboards API.
+6. Optional LLM provider behind feature flag.
+7. Evaluation harness (Telugu/English fixtures).
 
 **Acceptance:**
 
-- New grievance triggers analysis record with confidence and explainable urgency.
-- Low-confidence cases flagged for officer review in API response.
-- Status history complete and ordered.
+- Low-confidence analyses flagged; officer override audited.
+- Post-resolution feedback enforced once per citizen.
+- Image upload works; analysis advisory when provider configured.
 
 ---
 
-## Phase 4 — Frontend integration + deployment
+## Phase 4 — Frontend integration, multichannel, deploy
 
-**Goal:** Import Claude UI, connect to API, deploy to Vercel + Render.
+**Goal:** Claude UI wired to API; PWA polish; staged WhatsApp/voice; production deploy.
 
 **Tasks:**
 
-1. Merge Claude frontend into `frontend/`; align env vars and API client.
-2. Supabase Auth on client; attach JWT to FastAPI requests.
-3. Storage upload flow for attachments (signed URLs or backend proxy).
-4. Admin analytics endpoints and dashboard wiring.
-5. CI (lint/test), Render `render.yaml` or equivalent, Vercel project settings.
-6. Smoke tests on staging.
+1. Import frontend; API client; role-based routing.
+2. Citizen track + SLA warnings; officer + admin screens.
+3. Email/SMS/web push providers if configured.
+4. WhatsApp/voice webhooks (feature-flagged).
+5. CI, Render + Vercel, smoke tests.
+6. Community/municipal feeds **only if** security review passed (otherwise remain Future).
 
 **Acceptance:**
 
-- End-to-end demo: citizen submit → officer resolve → citizen notified.
-- Production secrets only in host env, not repository.
-- Health checks and CORS configured.
+- End-to-end: submit → assign → resolve → feedback → citizen notification.
+- Staging secrets in host env only.
+- Realtime or “live updates” not claimed without test evidence.
 
 ---
 
-## Phase 2 next action (immediate)
+## Phase 2 next action (when authorized)
 
-1. Scaffold FastAPI in `backend/` with health check and settings module.
-2. Create Supabase dev project and apply initial migration.
-3. Implement `GET /api/v1/me` and `POST /api/v1/grievances` per API contract.
+1. Scaffold `backend/` (FastAPI, `GET /api/v1/health`, JWT deps).
+2. Create dev Supabase; apply `20251016120000_initial_schema.sql` then `20251016130000_platform_redesign_extensions.sql`; run `seed.sql`.
+3. Implement **MVP** endpoints: `GET /me`, `POST/GET /grievances`, `GET /grievances/{id}/track`, `POST /grievances/{id}/analyze`, status transition route, `POST /grievances/{id}/feedback`.
 
-Stop all implementation at Phase 1 until explicitly instructed to begin Phase 2.
+Do not start Phase 2 until explicitly instructed.

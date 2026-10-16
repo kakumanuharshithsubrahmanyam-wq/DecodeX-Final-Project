@@ -1,148 +1,153 @@
 # RTGS Architecture
 
-## System overview
+Citizen-centric urban governance platform: grievance redressal, SLA-aware operations, modular AI, and staged multichannel integrations.
+
+## System context
 
 ```
-┌─────────────┐     JWT (Supabase)      ┌──────────────┐
-│   React     │ ───────────────────────▶│   FastAPI    │
-│   (Vercel)  │     REST /api/v1        │   (Render)   │
-└──────┬──────┘                         └──────┬───────┘
-       │                                         │
-       │  Supabase Auth + optional Realtime      │ SQL (service role / pool)
-       ▼                                         ▼
-┌──────────────────────────────────────────────────────────┐
-│              Supabase (Postgres, Auth, Storage)           │
-│  RLS for direct client reads; backend enforces authz    │
-└──────────────────────────────────────────────────────────┘
+                    ┌─────────────────────────────────────────┐
+                    │           Intake (staged)                │
+                    │  Web/PWA │ Chatbot │ WhatsApp │ Voice   │
+                    └────────────────────┬────────────────────┘
+                                         │
+┌─────────────┐   JWT + REST    ┌────────▼─────────┐   ┌──────────────┐
+│ React (Vite)│ ───────────────▶│ FastAPI (Render) │──▶│ AI pipeline  │
+│  (Vercel)   │                 │  /api/v1         │   │ rules + opt  │
+└──────┬──────┘                 └────────┬─────────┘   └──────────────┘
+       │ Supabase Auth session          │ SQL / Storage
+       ▼                                  ▼
+┌──────────────────────────────────────────────────────────────┐
+│ Supabase: PostgreSQL (RLS), Auth, Storage, Realtime (future)  │
+└──────────────────────────────────────────────────────────────┘
        ▲
-       │ optional signed uploads
-       └─ Storage bucket: complaint-attachments
+       └── Notification providers (email/SMS/WhatsApp) — Next/Future
 ```
 
 ## Repository layout
 
 ```
-DecodeX Final Project/          # monorepo root (RTGS)
-├── frontend/                   # Claude UI → Vite React app (Phase 4)
-├── backend/                    # FastAPI + AI pipeline (Phase 2+)
-├── supabase/
-│   ├── migrations/             # SQL source of truth for schema
-│   └── seed.sql                # sample departments (dev)
-├── docs/
-│   └── API_CONTRACT.md         # frontend ↔ backend contract
+├── frontend/          # Claude UI (React + Vite + Tailwind)
+├── backend/           # FastAPI, AI, integrations, workers (Phase 2+)
+├── supabase/migrations/
+├── docs/              # API, data model, features, integrations
 ├── PROJECT_SPEC.md
 ├── ARCHITECTURE.md
-├── DEVELOPMENT_PLAN.md
-└── README.md
+└── DEVELOPMENT_PLAN.md
 ```
 
 ## Component responsibilities
 
-### Frontend (`frontend/`)
+### Frontend
 
-- Supabase Auth UI/session (email or configured providers).
-- Grievance forms, tracking, officer queues, admin screens.
-- Calls **FastAPI** for business logic, AI analysis, and privileged operations.
-- Uses `VITE_API_BASE_URL`; sends `Authorization: Bearer <access_token>`.
-- Handles loading, empty, and error states per API contract conventions.
+- Responsive web first; PWA-ready layout (install optional later).
+- Supabase Auth for session; FastAPI for grievances, AI, admin, notifications.
+- Citizen timeline, officer queues, admin analytics (per [docs/API_CONTRACT.md](docs/API_CONTRACT.md)).
+- Distinct UI treatment: **AI suggestion** vs **official** vs **general guidance**.
+- Polling for timeline updates in MVP; Realtime subscription only after tested (Future).
 
-### Backend (`backend/`)
+### Backend
 
-- Validates Supabase JWT on protected routes.
-- Authorizes by `profiles.role` and department/officer assignments.
-- Owns grievance lifecycle, assignments, audit events, notifications.
-- Runs AI pipeline (rules baseline; optional LLM module).
-- Uses database connection with credentials suitable for server (pooler).
-- Never exposes service role key to clients.
+- Supabase JWT verification on protected routes.
+- Role and assignment checks on every mutating operation.
+- Grievance state machine enforcement ([docs/DATA_MODEL.md](docs/DATA_MODEL.md)).
+- SLA computation on create/assign/priority change.
+- Notification orchestration with dedupe and preferences.
+- Integration webhooks (WhatsApp/voice) behind feature flags (Future).
+- AI pipeline orchestration; no mandatory paid LLM.
 
-### Supabase
+### Database (Supabase PostgreSQL)
 
-- **Auth:** single identity provider; `auth.users.id` = `profiles.id`.
-- **PostgreSQL:** canonical data store; RLS on all public tables.
-- **Storage:** optional attachment binaries; metadata in `attachments` table.
+- Canonical records: grievances, events (timeline source of truth), assignments, SLA, feedback.
+- RLS enabled on all public tables; policies align with roles.
+- Service role used **narrowly** for system tasks (webhook intake, outbound delivery) with explicit authorization logic — not as a blanket bypass for user APIs.
 
-### AI module (backend)
+## Authentication and authorization
 
-- Input: grievance text, follow-up Q&A, location fields.
-- Output: summary, entities, suggested category/department, urgency score, confidence, follow-up questions, `requires_human_review` flag.
-- Pluggable: `AI_MODE=rules` default; optional API key for enhanced analysis.
+1. User signs in via Supabase Auth (frontend).
+2. API requests include `Authorization: Bearer <access_token>`.
+3. FastAPI validates JWT (`iss`, `aud`, expiry, signature via JWKS or dev secret).
+4. Load `profiles` by `sub`; deny inactive users.
+5. Authorize using `profiles.role`, `department_officers`, and assignment rows — **never** JWT `user_metadata` for privileges.
 
-## Authentication flow
+| Role | Scope |
+|------|--------|
+| Citizen | Own grievances, feedback, preferences |
+| Officer | Assigned + department policy |
+| Department administrator | Department queues and assignments (Next) |
+| Platform administrator | Global config, analytics, audit |
+| Community moderator | Community resources only (Future) |
 
-1. Citizen/officer/admin signs in via Supabase Auth in the frontend.
-2. Frontend obtains JWT `access_token` (short-lived).
-3. Each API request: `Authorization: Bearer <token>`.
-4. FastAPI verifies signature (JWKS from Supabase or configured JWT secret in dev), `aud`, `iss`, and expiry.
-5. FastAPI loads `profiles` row by `sub` (user UUID); rejects if missing or disabled.
-6. Authorization uses **database role and assignments**, not `user_metadata` from JWT.
+Legacy enum value `administrator` ≡ `platform_administrator` in application code.
 
-Optional: frontend may use Supabase client for session refresh only; grievance mutations go through API for consistent validation and audit.
+## Grievance lifecycle (backend)
 
-## Authorization model
+Statuses and transitions are defined in [docs/DATA_MODEL.md](docs/DATA_MODEL.md). Each transition writes a `grievance_events` row. API maps legacy `in_review` ↔ `under_review` for compatibility.
 
-| Action | Citizen | Officer | Admin |
-|--------|---------|---------|-------|
-| Create own grievance | Yes | — | — |
-| Read own grievance | Yes | — | — |
-| Read department assigned cases | — | Yes (scoped) | Yes |
-| Update status / assign | — | Yes (scoped) | Yes |
-| Manage departments | — | — | Yes |
-| View audit logs | — | Limited | Yes |
+## AI architecture
 
-Enforcement layers:
+Modular pipeline (single orchestrator, swappable providers):
 
-1. **FastAPI** dependency checks on every mutating route.
-2. **RLS** on Postgres for defense in depth if frontend ever queries DB directly.
-3. **Audit logs** for admin-sensitive and classification overrides.
+| Step | Output |
+|------|--------|
+| 1. Intake normalization | Clean text, channel metadata |
+| 2. Language detection | `en` / `te` (Next) |
+| 3. Completeness check | Missing fields list |
+| 4. Follow-up questions | Structured Q&A |
+| 5. Information extraction | Locations, entities (JSON) |
+| 6. Summarization | Neutral summary |
+| 7. Category/dept recommendation | Taxonomy codes + dept id |
+| 8. Priority assessment | Score, label, explanation |
+| 9. Duplicate/related detection | Candidate links (Next) |
+| 10. Optional image analysis | Advisory labels, OCR (Next) |
+| 11. Confidence + explanation | `requires_human_review` |
+| 12. Human actions | Officer/admin only via workflow APIs |
 
-## Database design (summary)
+Python interfaces (Phase 2+): `TextAnalysisProvider`, `ImageAnalysisProvider`, `LanguageDetector`, `SimilarityProvider`, `TranscriptionProvider`.
 
-See `supabase/migrations/20251016120000_initial_schema.sql` for full DDL.
+**Evaluation plan (Phase 3):** curated Telugu/English samples, vague text, overlapping categories, urgent keywords — measure override rate and review flags; no accuracy claims without measured results.
 
-Core entities:
+**Chatbot tools (Next):** read own grievance status, create **draft** grievance, list categories — each tool gated by auth; confirm before final submit.
 
-- `profiles` — extends auth users with role and display fields.
-- `departments` — government units.
-- `department_officers` — many-to-many officer ↔ department.
-- `grievances` — citizen submissions with official + AI-suggested fields.
-- `assignments` — officer/department responsibility over time.
-- `grievance_events` — status and remark timeline.
-- `ai_analyses` — versioned AI output linked to grievance.
-- `attachments` — file metadata (Storage path).
-- `notifications` — user inbox.
-- `audit_logs` — admin and security-sensitive actions.
+## Multichannel intake
 
-Reference IDs: human-readable `reference_id` (e.g. `RTGS-2026-A1B2C3`) unique index; internal UUID primary keys for joins.
+All channels converge on `GrievanceService.create_from_intake()` with `intake_channel` and optional `intake_external_id`. See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
-## API boundaries
+## Notifications
 
-- Version prefix: `/api/v1`.
-- JSON only; UTF-8; timestamps ISO 8601 UTC with `Z` or offset.
-- Pagination: `page`, `page_size` (max 100); response includes `meta.total`, `meta.page`, `meta.page_size`.
-- Errors: consistent envelope (see `docs/API_CONTRACT.md`).
+- MVP: in-app rows on submission, assignment, status change, needs_information, SLA breach.
+- Next: router to email/SMS/web push with delivery attempts.
+- Preferences and quiet hours in `notification_preferences`.
+- Emergency: authorized content only.
 
-Direct Supabase table access from the browser is **discouraged** for grievance writes; prefer API for audit and AI orchestration. Read-only Realtime on notifications may be added later.
+## Privacy and security
 
-## Deployment architecture
+| Topic | Approach |
+|-------|----------|
+| Secrets | Env only; never in frontend or Git |
+| Service role | Server-only; not for citizen-facing routes |
+| RLS | Complement API; fix gaps before direct client reads |
+| Attachments | Signed URLs; short TTL; role-scoped |
+| Location | Avoid publishing precise coords in public/community APIs |
+| Analytics | Aggregates only; k-anonymity for small wards (TBD threshold) |
+| Prompt injection | Sanitize display; system prompts isolated; no tool exec from raw complaint text alone |
+| Audit | `audit_logs` for admin/role changes and classification overrides |
+| Retention | Documented in DATA_MODEL; erasure requests via admin process (Phase 4) |
+| Rate limiting | Auth, create grievance, chat (Phase 2+) |
 
-| Component | Platform | Notes |
-|-----------|----------|--------|
-| Frontend | Vercel | Build `frontend/`; env: Supabase public keys + API URL |
-| Backend | Render | Web service; env: DATABASE_URL, JWT, service role |
-| Database/Auth | Supabase | Migrations via CLI or dashboard |
-| Attachments | Supabase Storage | Bucket policies aligned with RLS |
+## Deployment
 
-## Security notes
+| Layer | Host |
+|-------|------|
+| Frontend | Vercel |
+| API | Render |
+| DB/Auth/Storage | Supabase |
 
-- No secrets in Git; use `.env.example` placeholders only.
-- CORS restricted to known frontend origins.
-- Rate limiting on auth and grievance creation (Phase 2).
-- Attachments: virus scan / size limits (Phase 4).
-- AI outputs stored with `source: rules | llm` for transparency.
+## API boundary
 
-## Integration assumptions for Claude UI
+- Prefix `/api/v1`; JSON; ISO 8601 timestamps.
+- Endpoints tagged MVP / Next / Future in [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
+- OpenAPI generated from FastAPI in Phase 2; contract is normative for Claude UI until then.
 
-- Use shared TypeScript types generated from OpenAPI in Phase 4 (optional).
-- Role-based routes: `/`, `/grievances`, `/grievances/:id`, `/officer`, `/admin`.
-- All data fetching for grievances goes through FastAPI except Supabase Auth session.
-- Display AI fields with clear “Suggested by AI” labeling; official fields editable only by officer/admin APIs.
+## Frontend integration
+
+See [docs/FRONTEND_INTEGRATION.md](docs/FRONTEND_INTEGRATION.md).

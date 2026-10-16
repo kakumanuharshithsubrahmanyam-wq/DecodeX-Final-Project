@@ -1,8 +1,12 @@
-# RTGS API Contract (v1)
+# RTGS API Contract (v1.1 — platform redesign)
+
+**Status:** Specification only. Endpoints do not exist until implemented in Phase 2+.
 
 Base URL: `{VITE_API_BASE_URL}/api/v1`
 
-All protected endpoints require:
+Phase tags: **[MVP]** | **[Next]** | **[Future]**
+
+Protected routes require:
 
 ```
 Authorization: Bearer <supabase_access_token>
@@ -11,101 +15,72 @@ Content-Type: application/json
 
 ## Conventions
 
-### Success responses
+### Envelope
 
-Single resource:
+Success (single): `{ "data": { ... } }`
 
-```json
-{
-  "data": { }
-}
-```
+Success (list): `{ "data": [ ... ], "meta": { "page", "page_size", "total" } }`
 
-List with pagination:
-
-```json
-{
-  "data": [ ],
-  "meta": {
-    "page": 1,
-    "page_size": 20,
-    "total": 42
-  }
-}
-```
-
-### Timestamps
-
-ISO 8601 in UTC, e.g. `"2026-10-16T06:48:00Z"`.
-
-### Grievance reference ID
-
-Format: `RTGS-{YYYY}-{6 alphanumeric}` — assigned by server on create.
-
-### Error envelope
+Errors:
 
 ```json
 {
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "Human-readable summary",
-    "details": [
-      { "field": "description", "message": "Required" }
-    ]
+    "message": "Summary",
+    "details": [{ "field": "description", "message": "Required" }]
   }
 }
 ```
 
-| HTTP | code | When |
-|------|------|------|
-| 400 | VALIDATION_ERROR | Invalid body or query |
-| 401 | UNAUTHORIZED | Missing or invalid JWT |
-| 403 | FORBIDDEN | Valid user, insufficient role/scope |
-| 404 | NOT_FOUND | Resource missing or not visible |
-| 409 | CONFLICT | Illegal state transition |
-| 422 | UNPROCESSABLE | Semantic validation (e.g. closed grievance) |
-| 429 | RATE_LIMITED | Too many requests |
-| 500 | INTERNAL_ERROR | Unexpected server failure |
+| HTTP | code |
+|------|------|
+| 400 | VALIDATION_ERROR |
+| 401 | UNAUTHORIZED |
+| 403 | FORBIDDEN |
+| 404 | NOT_FOUND |
+| 409 | CONFLICT (invalid state transition, duplicate feedback) |
+| 422 | UNPROCESSABLE |
+| 429 | RATE_LIMITED |
+| 500 | INTERNAL_ERROR |
 
-Frontend expectations:
+### Reference ID
 
-- **Loading:** show skeleton/spinner; disable submit buttons.
-- **Empty lists:** show guided empty state (e.g. “No grievances yet”).
-- **401:** redirect to login / refresh session.
-- **403/404:** non-destructive message; no data leakage across roles.
+`RTGS-{YYYY}-{6 alphanumeric}` — server-assigned on create.
 
-### Filtering and sorting (lists)
+### Grievance status (API)
 
-Query params (where supported):
+`submitted` | `needs_information` | `under_review` | `assigned` | `in_progress` | `resolved` | `closed` | `reopened` | `escalated`
 
-- `status`, `priority`, `department_id`, `assigned_to`, `from`, `to` (ISO dates)
-- `q` — full-text search on reference_id and description (officer/admin)
-- `sort` — e.g. `-created_at`, `urgency_score`
-- `page`, `page_size` (default 20, max 100)
+Legacy: `in_review` accepted on input, returned as `under_review` where possible.
+
+### Roles (in `/me`)
+
+`citizen` | `officer` | `department_administrator` | `platform_administrator` | `community_moderator`
+
+Legacy: `administrator` → treat as `platform_administrator`.
+
+### Pagination / filters
+
+Query: `page`, `page_size` (max 100), `status`, `priority`, `department_id`, `category_id`, `assigned_to`, `from`, `to`, `q`, `sort`.
+
+---
+
+## Health
+
+### GET `/health` **[MVP]**
+
+Public.
+
+**Response 200:** `{ "data": { "status": "ok", "service": "rtgs-api", "version": "string" } }`
 
 ---
 
 ## Authentication and profile
 
-### GET `/health`
+### GET `/me` **[MVP]**
 
-Public. No auth.
-
-**Response 200**
-
-```json
-{
-  "data": {
-    "status": "ok",
-    "service": "rtgs-api",
-    "version": "0.1.0"
-  }
-}
-```
-
-### GET `/me`
-
-**Role:** any authenticated user with profile.
+Auth: any active user with profile.
 
 **Response 200**
 
@@ -113,407 +88,372 @@ Public. No auth.
 {
   "data": {
     "id": "uuid",
-    "email": "user@example.com",
+    "email": "string",
     "full_name": "string | null",
-    "role": "citizen | officer | administrator",
     "phone": "string | null",
+    "role": "citizen | officer | ...",
+    "permissions": ["grievance:create", "..."],
     "department_ids": ["uuid"],
+    "locale": "en",
     "created_at": "ISO8601",
     "updated_at": "ISO8601"
   }
 }
 ```
 
-**Errors:** 401 if token invalid; 404 if auth user exists but profile not provisioned.
+**Errors:** 401, 404 (profile not provisioned).
 
-### PATCH `/me`
+### PATCH `/me` **[MVP]**
 
-**Role:** self.
+Auth: self. Cannot change `role`.
 
-**Request**
+**Request:** `{ "full_name?", "phone?", "locale?" }` (`locale`: `en` | `te` planned)
 
-```json
-{
-  "full_name": "string",
-  "phone": "string"
-}
-```
+### GET `/me/notification-preferences` **[MVP]**
 
-**Response 200:** same shape as GET `/me`.
+**Response:** preferences object matching `notification_preferences` table.
 
-**Validation:** phone format optional E.164; cannot change `role` via this endpoint.
+### PUT `/me/notification-preferences` **[MVP]**
+
+**Request:** channel toggles, quiet hours, consent flags.
+
+**Validation:** `emergency_alerts_enabled` cannot be disabled for certain alert types (policy TBD).
+
+---
+
+## Categories
+
+### GET `/categories` **[MVP]**
+
+Auth: authenticated. Returns active taxonomy tree.
+
+**Response:** `{ "data": [{ "id", "code", "name", "parent_id", "children": [] }] }`
+
+### POST `/categories` **[Next]**
+
+Role: `platform_administrator`.
+
+### PATCH `/categories/{id}` **[Next]**
+
+Role: `platform_administrator`.
 
 ---
 
 ## Grievances
 
-### POST `/grievances`
+### POST `/grievances` **[MVP]**
 
-**Role:** citizen (administrator may create on behalf in Phase 3+ — not MVP).
+Role: `citizen`.
 
 **Request**
 
 ```json
 {
-  "title": "string (optional, max 200)",
-  "description": "string (required, min 20)",
-  "location_text": "string (required)",
-  "latitude": 17.3850,
-  "longitude": 78.4867,
-  "category_hint": "string | null"
-}
-```
-
-**Response 201**
-
-```json
-{
-  "data": {
-    "id": "uuid",
-    "reference_id": "RTGS-2026-ABC123",
-    "status": "submitted",
-    "title": "string | null",
-    "description": "string",
-    "location_text": "string",
-    "latitude": "number | null",
-    "longitude": "number | null",
-    "citizen_id": "uuid",
-    "official_category": "string | null",
-    "official_department_id": "uuid | null",
-    "official_priority": "low | medium | high | critical | null",
-    "created_at": "ISO8601",
-    "updated_at": "ISO8601",
-    "latest_analysis": null
-  }
-}
-```
-
-Side effect: creates initial `grievance_events` entry (`submitted`); may enqueue async analysis (Phase 3).
-
-### GET `/grievances`
-
-**Role:**
-
-- **citizen:** own grievances only.
-- **officer:** assigned or department-scoped.
-- **administrator:** all (with filters).
-
-**Response 200:** paginated list of grievance summary objects:
-
-```json
-{
-  "id": "uuid",
-  "reference_id": "RTGS-2026-ABC123",
-  "status": "submitted | in_review | assigned | in_progress | resolved | closed | escalated",
   "title": "string | null",
-  "description_preview": "first 160 chars",
-  "official_priority": "low | medium | high | critical | null",
-  "official_department_id": "uuid | null",
-  "citizen_id": "uuid",
-  "created_at": "ISO8601",
-  "updated_at": "ISO8601",
-  "urgency_score": "number | null",
-  "requires_human_review": "boolean"
+  "description": "string (min 20)",
+  "location_text": "string",
+  "latitude": "number | null",
+  "longitude": "number | null",
+  "category_id": "uuid | null",
+  "subcategory_id": "uuid | null",
+  "category_hint": "string | null",
+  "ward_or_locality": "string | null",
+  "intake_channel": "web | mobile_web"
 }
 ```
 
-### GET `/grievances/{grievance_id}`
+**Response 201:** grievance + `reference_id`, `status: submitted`, embedded `sla` summary if computed.
 
-**Role:** citizen (owner), assigned officer, or admin.
+**Side effects:** event `submitted`; optional async analyze job.
 
-**Response 200**
+### GET `/grievances` **[MVP]**
 
-```json
-{
-  "data": {
-    "grievance": { },
-    "events": [
-      {
-        "id": "uuid",
-        "event_type": "status_change | remark | assignment | analysis",
-        "from_status": "string | null",
-        "to_status": "string | null",
-        "remark": "string | null",
-        "actor_id": "uuid",
-        "created_at": "ISO8601"
-      }
-    ],
-    "assignments": [
-      {
-        "id": "uuid",
-        "department_id": "uuid",
-        "officer_id": "uuid | null",
-        "assigned_at": "ISO8601",
-        "unassigned_at": "ISO8601 | null"
-      }
-    ],
-    "attachments": [
-      {
-        "id": "uuid",
-        "file_name": "string",
-        "content_type": "string",
-        "size_bytes": 12345,
-        "storage_path": "string",
-        "created_at": "ISO8601"
-      }
-    ],
-    "latest_analysis": { }
-  }
-}
-```
+Role-scoped list (citizen: own; officer: dept/assigned; platform admin: filtered all).
 
-### PATCH `/grievances/{grievance_id}`
+### GET `/grievances/{id}` **[MVP]**
 
-**Role:** citizen (limited) or officer/admin.
+Full detail: grievance, events, assignments, attachments meta, latest_analysis, sla, feedback (if permitted).
 
-**Citizen request** (only while `status` in `submitted`, `in_review`):
+### PATCH `/grievances/{id}` **[MVP]**
+
+**Citizen:** edit description/location when status in `submitted`, `needs_information`, `under_review`.
+
+**Officer/admin:** official category, department, priority; optional remark (creates event).
+
+**Request (officer):**
 
 ```json
 {
-  "description": "string",
-  "location_text": "string"
-}
-```
-
-**Officer/admin request**
-
-```json
-{
-  "official_category": "string",
+  "official_category_id": "uuid",
   "official_department_id": "uuid",
   "official_priority": "low | medium | high | critical",
-  "status": "in_review | assigned | in_progress | resolved | closed | escalated",
   "officer_remark": "string"
 }
 ```
 
-**Response 200:** full grievance object.
+### POST `/grievances/{id}/submit-additional-info` **[MVP]**
 
-**Errors:** 409 on invalid transitions; 422 if resolved/closed and citizen tries to edit.
+Role: citizen owner. When status is `needs_information`.
 
----
+**Request:** `{ "description?", "location_text?", "responses": [{ "question_id", "answer" }] }`
 
-## AI analysis and follow-up
+**Response:** updated grievance; may transition to `under_review`.
 
-### POST `/grievances/{grievance_id}/analyze`
+### POST `/grievances/{id}/transitions` **[MVP]**
 
-**Role:** citizen (owner) or officer/admin.
+Role: officer or platform/department admin (per transition).
 
-Triggers (re)analysis. Idempotent within cooldown (e.g. 60s) — returns latest if recent.
-
-**Request** (optional)
+**Request**
 
 ```json
 {
-  "force": false
+  "to_status": "assigned | in_progress | ...",
+  "remark": "string | null"
 }
 ```
 
-**Response 200**
+**Errors:** 409 if transition not allowed.
+
+### POST `/grievances/{id}/reopen` **[Next]**
+
+Role: citizen (policy window) or officer.
+
+**Request:** `{ "reason": "string" }`
+
+### GET `/grievances/{id}/track` **[MVP]**
+
+Citizen-safe tracking view (no internal remarks).
+
+**Response**
 
 ```json
 {
   "data": {
-    "id": "uuid",
-    "grievance_id": "uuid",
-    "version": 1,
-    "source": "rules | llm",
-    "summary": "string",
-    "extracted_entities": {
-      "locations": ["string"],
-      "issues": ["string"],
-      "keywords": ["string"]
+    "reference_id": "string",
+    "status": "string",
+    "timeline": [{ "status", "label", "occurred_at", "public_message" }],
+    "current_department": { "id", "name" } | null,
+    "sla": {
+      "first_response_due_at": "ISO8601 | null",
+      "resolution_due_at": "ISO8601 | null",
+      "breached": false,
+      "warnings": ["resolution_overdue"]
     },
-    "suggested_category": "string | null",
-    "suggested_department_id": "uuid | null",
-    "urgency_score": 0.0,
-    "urgency_label": "low | medium | high | critical",
-    "confidence": 0.0,
-    "requires_human_review": true,
-    "explanation": "string",
-    "follow_up_questions": [
-      {
-        "id": "string",
-        "question": "string",
-        "required": true
-      }
-    ],
-    "created_at": "ISO8601"
+    "resolution_summary": "string | null"
   }
 }
 ```
 
-### POST `/grievances/{grievance_id}/follow-up-responses`
+---
 
-**Role:** citizen (owner).
+## AI
 
-**Request**
+### POST `/grievances/{id}/analyze` **[MVP]**
 
-```json
-{
-  "responses": [
-    { "question_id": "string", "answer": "string" }
-  ]
-}
-```
+Role: owner or authorized officer.
 
-**Response 200:** new or updated `latest_analysis` (may trigger re-analysis).
+**Request:** `{ "force": false }`
+
+**Response 200:** analysis object (see v1.0 shape): summary, entities, suggestions, urgency, confidence, `requires_human_review`, `follow_up_questions`, `source: rules | llm`.
+
+### POST `/grievances/{id}/follow-up-responses` **[MVP]**
+
+Role: citizen owner.
+
+### POST `/grievances/{id}/analyze-images` **[Next]**
+
+Role: owner or officer. Requires attachments.
+
+**Response:** updates `attachments[].image_analysis` (advisory).
+
+### GET `/grievances/{id}/related` **[Next]**
+
+Role: officer/admin. Duplicate/related candidates with confidence.
 
 ---
 
-## Assignments and status
+## Assignments and escalation
 
-### POST `/grievances/{grievance_id}/assignments`
+### POST `/grievances/{id}/assignments` **[MVP]**
 
-**Role:** officer (within dept) or administrator.
+Role: officer (dept scope), `department_administrator`, `platform_administrator`.
 
-**Request**
+**Request:** `{ "department_id", "officer_id": "uuid | null" }`
 
-```json
-{
-  "department_id": "uuid",
-  "officer_id": "uuid | null"
-}
-```
+### POST `/grievances/{id}/escalate` **[MVP]**
 
-**Response 201:** assignment object; grievance status typically moves to `assigned`.
-
-### POST `/grievances/{grievance_id}/escalate`
-
-**Role:** officer or administrator.
-
-**Request**
-
-```json
-{
-  "reason": "string (required)"
-}
-```
-
-**Response 200:** updated grievance with `status: escalated`.
-
----
-
-## Departments and officers (admin)
-
-### GET `/departments`
-
-**Role:** authenticated (citizens see active list for hints; officers see own).
-
-**Response 200:** paginated `{ id, name, code, description, is_active }`.
-
-### POST `/departments`
-
-**Role:** administrator.
-
-**Request:** `{ "name", "code", "description" }`
-
-### PATCH `/departments/{department_id}`
-
-**Role:** administrator.
-
-### GET `/departments/{department_id}/officers`
-
-**Role:** administrator.
-
-### PUT `/departments/{department_id}/officers`
-
-**Role:** administrator.
-
-**Request**
-
-```json
-{
-  "officer_ids": ["uuid"]
-}
-```
+**Request:** `{ "reason": "string" }`
 
 ---
 
 ## Attachments
 
-### POST `/grievances/{grievance_id}/attachments/upload-url`
+### POST `/grievances/{id}/attachments/upload-url` **[Next]**
 
-**Role:** citizen (owner) or officer.
+**Request:** `{ "file_name", "content_type", "size_bytes", "attachment_role": "evidence | before | after | resolution" }`
+
+### POST `/grievances/{id}/attachments/{attachment_id}/complete` **[Next]**
+
+### POST `/grievances/{id}/attachments/{attachment_id}/confirm-location` **[Next]**
+
+Citizen confirms EXIF-suggested location (never auto-applied without confirm).
+
+---
+
+## Feedback
+
+### POST `/grievances/{id}/feedback` **[MVP]**
+
+Role: citizen owner; grievance `resolved` or `closed`.
 
 **Request**
 
 ```json
 {
-  "file_name": "photo.jpg",
-  "content_type": "image/jpeg",
-  "size_bytes": 1048576
+  "rating": 1,
+  "satisfaction_score": 1,
+  "comment": "string | null",
+  "improvement_suggestion": "string | null"
 }
 ```
 
-**Response 200**
+**Errors:** 409 if feedback already exists.
 
-```json
-{
-  "data": {
-    "attachment_id": "uuid",
-    "upload_url": "signed url",
-    "expires_at": "ISO8601"
-  }
-}
-```
+### GET `/grievances/{id}/feedback` **[MVP]**
 
-Client uploads via PUT to signed URL; then optional `POST .../attachments/{id}/complete`.
+Role: owner, officer on case, admin.
+
+---
+
+## Departments and officers
+
+### GET `/departments` **[MVP]**
+
+### POST `/departments` **[MVP]**
+
+Role: `platform_administrator`.
+
+### PATCH `/departments/{id}` **[MVP]**
+
+### GET `/departments/{id}/officers` **[MVP]**
+
+### PUT `/departments/{id}/officers` **[MVP]**
+
+---
+
+## SLA
+
+### GET `/sla-policies` **[Next]**
+
+Role: platform admin.
+
+### POST `/sla-policies` **[Next]**
+
+### GET `/grievances/{id}/sla` **[MVP]**
+
+Embedded in detail/track; dedicated endpoint optional same shape.
 
 ---
 
 ## Notifications
 
-### GET `/notifications`
+### GET `/notifications` **[MVP]**
 
-**Role:** self.
+### POST `/notifications/{id}/read` **[MVP]**
 
-**Response 200:** paginated `{ id, type, title, body, read_at, created_at, grievance_id }`.
-
-### POST `/notifications/{notification_id}/read`
-
-**Role:** self.
-
-**Response 200:** `{ "data": { "id", "read_at" } }`
+### POST `/notifications/read-all` **[Next]**
 
 ---
 
-## Dashboard analytics
+## Chatbot (web)
 
-### GET `/analytics/overview`
+### POST `/chat/sessions` **[Next]**
 
-**Role:** administrator.
+Creates ephemeral session linked to user.
 
-**Query:** `from`, `to` (ISO date).
+### POST `/chat/sessions/{id}/messages` **[Next]**
 
-**Response 200**
+**Request:** `{ "message": "string" }`
 
-```json
-{
-  "data": {
-    "total_grievances": 0,
-    "by_status": { "submitted": 0 },
-    "by_priority": { "high": 0 },
-    "overdue_count": 0,
-    "avg_resolution_hours": null,
-    "department_workload": [
-      { "department_id": "uuid", "open_count": 0, "overdue_count": 0 }
-    ]
-  }
-}
-```
+**Response:** assistant messages, optional `tool_calls` (draft grievance, status lookup).
 
-### GET `/analytics/audit-logs`
+### POST `/chat/sessions/{id}/confirm-grievance` **[Next]**
 
-**Role:** administrator.
-
-Paginated audit entries: `{ actor_id, action, resource_type, resource_id, metadata, created_at }`.
+Confirms draft → `POST /grievances` equivalent.
 
 ---
 
-## Webhooks / realtime (future)
+## Integrations (webhooks)
 
-Not in MVP. Notifications may later use Supabase Realtime on `notifications` table.
+### POST `/integrations/whatsapp/inbound` **[Future]**
+
+Provider signature auth (no Supabase JWT). Normalizes to intake pipeline.
+
+### POST `/integrations/voice/inbound` **[Future]**
+
+---
+
+## Community **[Future]**
+
+### GET `/community/posts`
+
+### POST `/community/posts`
+
+### POST `/community/posts/{id}/comments`
+
+### POST `/community/reports`
+
+Role: `community_moderator` for moderation endpoints (TBD).
+
+**Privacy:** no private grievance fields in public posts API.
+
+---
+
+## Municipal services **[Future]**
+
+### GET `/services/disruptions`
+
+Area-filtered read.
+
+### GET `/services/maintenance-schedules`
+
+### GET `/campaigns`
+
+Active campaigns; respects notification marketing consent.
+
+---
+
+## Analytics
+
+### GET `/analytics/overview` **[MVP]**
+
+Role: `platform_administrator`, `department_administrator` (scoped).
+
+**Response:** totals, by_status, by_priority, overdue_count, sla_compliance_rate, avg_resolution_hours, department_workload[].
+
+### GET `/analytics/trends` **[Next]**
+
+Time series; category trends.
+
+### GET `/analytics/duplicate-clusters` **[Next]**
+
+### GET `/analytics/audit-logs` **[MVP]**
+
+Role: platform admin.
+
+---
+
+## Permissions matrix (summary)
+
+| Endpoint group | Citizen | Officer | Dept admin | Platform admin |
+|----------------|---------|---------|------------|----------------|
+| Create grievance | ✓ | — | — | — |
+| Track own | ✓ | — | — | — |
+| Dept cases | — | ✓ | ✓ | ✓ |
+| Transitions | — | ✓ | ✓ | ✓ |
+| Categories CRUD | — | — | — | ✓ |
+| Analytics | — | limited | dept | ✓ |
+| Community | ✓ | — | — | mod role |
 
 ---
 
@@ -521,4 +461,5 @@ Not in MVP. Notifications may later use Supabase Realtime on `notifications` tab
 
 | Version | Date | Notes |
 |---------|------|-------|
-| 0.1.0 | 2026-10-16 | Phase 1 draft contract |
+| 0.1.0 | 2026-10-16 | Initial contract |
+| 1.1.0 | 2026-10-16 | Platform redesign: lifecycle, roles, SLA, feedback, phased endpoints |

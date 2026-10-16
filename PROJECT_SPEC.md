@@ -1,100 +1,106 @@
 # RTGS — Real-Time Governance Society
 
+**Citizen-centric urban governance and AI-powered grievance redressal**
+
+RTGS is a digital platform for transparent, accessible, efficient, and trackable civic grievance redressal and access to municipal services. It is designed for responsive web first, with an architecture that can later support native mobile apps and messaging channels (WhatsApp, voice, SMS).
+
+**Disclaimer:** RTGS is a software platform under development. It must not be presented as an official government service or as integrated with a live government system unless that integration is explicitly authorized and implemented.
+
 ## Problem statement
 
-Government grievance portals receive incomplete complaints, vague descriptions, and incorrectly categorized submissions. These failures delay routing, assignment, and resolution.
+Urban grievance channels receive incomplete complaints, vague descriptions, wrong categories, and inconsistent follow-up. Citizens lack visibility into progress. Departments struggle with prioritization, SLA compliance, and workload visibility.
 
-## Objectives
+## Product vision
 
-- Help citizens submit understandable, actionable grievances.
-- Detect missing information and ask contextual follow-up questions.
-- Extract facts (location, issue type, entities) without altering citizen intent.
-- Recommend responsible departments and categories with explainable confidence.
-- Assess urgency using transparent, auditable rules.
-- Track assignments, status changes, and resolution deadlines.
-- Give officers AI-assisted summaries and administrative tools (human decisions remain authoritative).
-- Give administrators operational visibility, audit trails, and analytics.
+Enable citizens to report civic problems through multiple channels, receive intelligent assistance, track progress, evaluate service quality, and participate in community improvement — while giving municipal departments tools to categorize, prioritize, assign, investigate, and resolve complaints with SLA monitoring and operational analytics.
 
-## AI safety and scope
+## Design principles
 
-The AI **assists** authorized officials. It must **not**:
+1. **Citizen-first transparency** — reference IDs, timelines, and clear status language.
+2. **Human authority** — officials decide; AI recommends with confidence and explanations.
+3. **Single intake pipeline** — all channels normalize into one grievance workflow.
+4. **Privacy by default** — no public exposure of addresses, attachments, or private grievance text.
+5. **Modular integrations** — missing provider credentials must not block local development.
+6. **Achievable MVP** — advanced channels and community features ship after core security.
 
-- Automatically reject grievances.
-- Present AI inferences as verified facts or official decisions.
-- Make unsupported claims about danger, legality, or guaranteed resolution.
+## Feature modules (A–H)
 
-All recommendations are labeled as suggestions; officers and administrators may override with audit logging.
+| Module | Summary | MVP scope |
+|--------|---------|-----------|
+| **A — Grievance management** | Registration, categorization, assignment, SLA, feedback, reopen | Core MVP |
+| **B — Real-time tracking** | Timeline, deadlines, SLA warnings | MVP (polling); Realtime optional later |
+| **C — Multichannel intake** | Web, mobile web/PWA, WhatsApp, voice, chatbot | Web MVP; others staged |
+| **D — AI chatbot** | NLU, Telugu/English, guided submission, status queries | Rules MVP; LLM optional |
+| **E — Image analysis** | Category hints, OCR, EXIF with consent | Interface MVP; models next phase |
+| **F — Citizen feedback** | Ratings, satisfaction, improvement suggestions | MVP |
+| **G — Community engagement** | Forums, drives, announcements | Deferred until core secure |
+| **H — Smart notifications** | Multi-channel alerts with preferences | In-app MVP; external channels staged |
+
+Detailed module mapping: [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md).
 
 ## User roles
 
-| Role | Description |
-|------|-------------|
-| **Citizen** | Submits and tracks own grievances; answers follow-ups; provides feedback. |
-| **Officer** | Works assigned cases in authorized departments; updates status and remarks. |
-| **Administrator** | Manages departments, officer assignments, and cross-cutting visibility within policy. |
+| Role | Capabilities |
+|------|----------------|
+| **Citizen** | Own grievances, tracking, feedback, notification preferences, permitted community participation (future) |
+| **Municipal officer** | Assigned cases, AI review, status/remarks, resolution evidence, escalation |
+| **Department administrator** | Department workflows, assignments, queues, SLA compliance (next phase UI) |
+| **Platform administrator** | Departments, roles, categories, SLA policies, analytics, audit |
+| **Community moderator** | Moderate public content only; no default access to private grievances (future) |
 
-Role is stored server-side (`profiles.role` and department links), not in user-editable JWT metadata.
+Authorization is enforced in **FastAPI and PostgreSQL RLS**, not UI hiding alone.
 
-## Core features (MVP)
+## Grievance lifecycle
 
-### Citizen
+**Submitted → Needs Information | Under Review → Assigned → In Progress → Resolved → Closed**
 
-- Register and log in (Supabase Auth).
-- Create grievance with description, location, optional attachments.
-- Answer AI follow-up questions.
-- View suggested category, department, and priority (as recommendations).
-- Track reference ID, status, assigned department, timestamps.
-- Receive in-app notifications for status changes.
-- Submit feedback or request review.
+Also: **Reopened**, **Escalated**. Backend validates transitions; see [docs/DATA_MODEL.md](docs/DATA_MODEL.md).
 
-### Government officer
+AI must not auto-reject grievances or change official status without human action.
 
-- List and open cases assigned to self or department (per policy).
-- Review AI analysis, confidence, and explanations.
-- Correct category, department, and priority; add official remarks.
-- Update status and upload resolution evidence.
-- Escalate overdue or high-urgency cases.
+## MVP scope (achievable first release)
 
-### Administrator
+- Citizen registration/login (Supabase Auth).
+- Web grievance submission with category, location, optional evidence.
+- AI-assisted completeness check and follow-up questions (rules-based minimum).
+- Category, department, and priority **recommendations** with confidence.
+- Officer assignment and status workflow with event history.
+- SLA deadlines and overdue/escalation indicators.
+- Citizen tracking timeline and in-app notifications.
+- Post-resolution citizen feedback.
+- Platform admin dashboard: workload, resolution times, SLA compliance (aggregate).
 
-- CRUD departments; assign officers to departments.
-- Filter and view grievances permitted by role.
-- Monitor pending, overdue, and urgent queues.
-- View workload and resolution analytics.
-- Inspect audit trail and classification corrections.
+## Staged extensions (interfaces defined pre-integration)
 
-### AI engine (modular pipeline)
+- Telugu/English multilingual input and responses.
+- Image analysis pipeline (advisory labels, OCR, EXIF with confirmation).
+- Email, SMS, web push, WhatsApp notifications.
+- WhatsApp and voice intake webhooks.
+- AI chatbot with tool-gated draft grievance creation.
+- Duplicate/related grievance detection.
+- Community forums and municipal campaigns/service disruption feeds.
+- Supabase Realtime for live timeline updates (after tested).
 
-- Completeness and vagueness detection.
-- Follow-up question generation.
-- Neutral summarization.
-- Entity and location extraction.
-- Category and department recommendation.
-- Explainable urgency score with confidence; flag low-confidence for human review.
-- **Baseline:** rules-based path when no external LLM credentials are configured.
+## AI safety
 
-## MVP scope (Phase 2–4)
+- Separate **guidance**, **AI recommendations**, and **verified official** data in UI and API.
+- No fabricated policies, resolution dates, or other citizens’ case details.
+- Emergency broadcasts only from verified/authorized sources — not AI suspicion.
+- Prompt-injection awareness on free-text complaints, images, and future public posts.
+- Human review for low-confidence or consequential recommendations.
 
-Included in accelerated delivery:
+## Success metrics (product)
 
-- End-to-end grievance submit → analyze → assign → resolve flow.
-- Supabase Auth + FastAPI JWT validation.
-- PostgreSQL schema with RLS for citizen-owned data.
-- Officer and admin dashboards (Claude UI + Cursor backend).
-- Rules-based AI with optional LLM upgrade hook.
+- Time to usable reference ID after submit.
+- Percentage of grievances meeting first-response SLA.
+- Citizen satisfaction scores collected post-resolution.
+- Officer override rate on AI category (feedback for tuning).
+- Zero cross-tenant/cross-citizen data leaks in permission tests.
 
-## Deferred (post-MVP)
+## Related documentation
 
-- Duplicate complaint detection.
-- Multilingual support (Telugu + English priority).
-- SLA breach alerts and escalation automation.
-- Geographic complaint hotspots.
-- Public aggregate transparency reports.
-- SMS/email notification providers beyond in-app.
-
-## Success criteria (product)
-
-- Citizens receive a unique reference ID within one submission session.
-- Every status change is recorded in `grievance_events` with actor and timestamp.
-- Officers can always distinguish AI suggestions from official fields.
-- Administrators can explain backlog and overdue counts from dashboard metrics.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — system and AI design
+- [docs/API_CONTRACT.md](docs/API_CONTRACT.md) — REST integration contract
+- [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — entities and lifecycle
+- [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) — external providers
+- [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) — four-phase delivery
