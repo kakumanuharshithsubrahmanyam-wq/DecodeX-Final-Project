@@ -32,3 +32,4 @@ html[lang='te'] .app{font-family:'DM Sans',sans-serif;line-height:1.65}
 .page-header p,.field-label,.hero-copy>p,.panel-heading p{font-size:max(16px,1rem)}
 .data-table th,.data-table td{font-size:max(14px,.9rem);white-space:normal}
 .field-label input,.field-label textarea,.field-label select{font-size:16px;min-height:44px}
+.data-source-notice{display:flex;align-items:flex-start;gap:8px;margin:0 0 14px;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--border);font-size:max(14px,.88rem);color:var(--muted);line-height:1.45}

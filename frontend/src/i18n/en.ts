@@ -1,3 +1,5 @@
+import { portalEn } from './portal-en';
+
 const en = {
   lang: { english: 'English', telugu: 'Telugu', toggle: 'Change language' },
   brand: { title: 'RTGS', tagline: 'REAL TIME GOVERNANCE SOCIETY' },
@@ -57,6 +59,7 @@ const en = {
     },
   },
   a11y: {
+    skip: 'Skip to main content',
     notifications: 'Notifications',
     theme: 'Toggle dark or light theme',
     menu: 'Open navigation menu',
@@ -100,6 +103,15 @@ const en = {
     placeholder: 'Ask the RTGS assistant…',
     quickFile: 'File a complaint',
     quickTrack: 'Track a complaint',
+    botDefault:
+      'This is a basic help assistant. I can guide you through filing, tracking, categories, or response times in plain language.',
+    botTrackMissing:
+      'To track a complaint, open My complaints and search using your reference number.',
+    botFile:
+      'Choose “File a complaint”, describe the issue and location, answer any follow-up questions, review suggestions, then submit.',
+    botEmergency:
+      'If there is immediate danger, contact the appropriate local emergency service directly. RTGS does not dispatch responders.',
+    botTelugu: 'Use the తెలుగు / English toggle in the top bar to switch the whole interface.',
   },
   help: {
     title: 'Help centre',
@@ -127,6 +139,7 @@ const en = {
       help: 'Get help',
     },
   },
+  portal: portalEn,
 } as const;
 
 export type TranslationDict = typeof en;

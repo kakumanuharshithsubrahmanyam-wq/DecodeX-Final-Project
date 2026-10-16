@@ -37,6 +37,22 @@ Exit code 0 only if health + create grievance succeed against configured Postgre
 
 Record results in your run log; do not claim live verification unless each step was executed against dev.
 
+## Phase 5 status (this repo checkout)
+
+| Area | Result |
+|------|--------|
+| Frontend unit tests | `npm test` — role mapping + i18n parity |
+| Frontend build | `npm run build` |
+| Backend pytest | 27 passed, 1 skipped (live Supabase test) |
+| Live Supabase Auth / Storage / Postgres | **Pending** — only `.env.example` present; copy dev credentials to `backend/.env` and `frontend/.env.local` |
+
+Setup for live dev verification:
+
+1. Create or use a dedicated Supabase dev project; run migrations from `supabase/migrations/`.
+2. `frontend/.env.local`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`; do **not** set `VITE_DEMO_MODE=true` in production builds.
+3. `backend/.env`: `DATABASE_URL`, `SUPABASE_JWT_SECRET`, optional Storage keys for attachment smoke tests.
+4. Run the manual checklist above and note which steps used real services vs mocks.
+
 ## Attachment verification
 
 | Step | Expected |

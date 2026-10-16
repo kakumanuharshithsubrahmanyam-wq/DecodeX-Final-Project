@@ -12,16 +12,18 @@ import { api } from '@/lib/api-client';
 import type { MeProfile } from '@/lib/types';
 import { getSupabase, onAuthStateChange } from '@/lib/auth';
 import { canUseLiveApi, isExplicitDemoMode, isSupabaseConfigured } from '@/lib/config';
-
-export type WorkspaceRole = 'Citizen' | 'Officer' | 'Admin' | 'Moderator';
+import { mapApiRoleToWorkspace, normalizeApiRole, type WorkspaceKind } from '@/auth/roles';
 
 export type AuthStatus = 'loading' | 'guest' | 'authenticated';
 
+export type ProfileStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 type AuthContextValue = {
   status: AuthStatus;
+  profileStatus: ProfileStatus;
   session: Session | null;
   profile: MeProfile | null;
-  workspace: WorkspaceRole;
+  workspace: WorkspaceKind;
   apiRole: string | null;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -31,37 +33,47 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function mapApiRoleToWorkspace(role: string): WorkspaceRole {
-  switch (role) {
-    case 'officer':
-      return 'Officer';
-    case 'department_administrator':
-    case 'platform_administrator':
-    case 'administrator':
-      return 'Admin';
-    case 'community_moderator':
-      return 'Moderator';
-    default:
-      return 'Citizen';
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>('idle');
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<MeProfile | null>(null);
   const supabaseReady = isSupabaseConfigured();
 
   const refreshProfile = useCallback(async () => {
-    if (!session) {
+    if (!session && !isExplicitDemoMode()) {
       setProfile(null);
+      setProfileStatus('idle');
       return;
     }
+    if (isExplicitDemoMode() && !session) {
+      setProfile({
+        id: '00000000-0000-4000-8000-000000000001',
+        email: 'demo@rtgs.local',
+        full_name: 'Demo Citizen',
+        phone: null,
+        role: 'citizen',
+        permissions: ['grievance:create', 'grievance:read_own'],
+        department_ids: [],
+        locale: 'en',
+      });
+      setProfileStatus('ready');
+      return;
+    }
+    setProfileStatus('loading');
     try {
       const res = await api.me();
+      const role = normalizeApiRole(res.data.role);
+      if (!role) {
+        setProfile(null);
+        setProfileStatus('error');
+        return;
+      }
       setProfile(res.data);
+      setProfileStatus('ready');
     } catch {
       setProfile(null);
+      setProfileStatus('error');
     }
   }, [session]);
 
@@ -69,21 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabaseReady) {
       if (isExplicitDemoMode()) {
         setStatus('authenticated');
-        setProfile({
-          id: '00000000-0000-4000-8000-000000000001',
-          email: 'demo@rtgs.local',
-          full_name: 'Demo Citizen',
-          phone: null,
-          role: 'citizen',
-          permissions: [],
-          department_ids: [],
-          locale: 'en',
-        });
+        setSession(null);
+        void refreshProfile();
       } else {
         setStatus('guest');
         setProfile(null);
+        setProfileStatus('idle');
       }
-      setSession(null);
       return;
     }
     const supabase = getSupabase();
@@ -96,13 +100,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus(s ? 'authenticated' : 'guest');
     });
     return () => sub.data.subscription.unsubscribe();
-  }, [supabaseReady]);
+  }, [supabaseReady, refreshProfile]);
 
   useEffect(() => {
-    if (status === 'authenticated' && session) {
+    if (status === 'authenticated') {
       void refreshProfile();
-    } else {
+    } else if (status === 'guest') {
       setProfile(null);
+      setProfileStatus('idle');
     }
   }, [status, session, refreshProfile]);
 
@@ -112,15 +117,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setSession(null);
     setProfile(null);
+    setProfileStatus('idle');
     setStatus('guest');
   }, [supabaseReady]);
 
-  const workspace = mapApiRoleToWorkspace(profile?.role ?? 'citizen');
+  const workspace = mapApiRoleToWorkspace(profile?.role);
   const liveApi = canUseLiveApi(Boolean(session));
 
   const value = useMemo(
     () => ({
       status,
+      profileStatus,
       session,
       profile,
       workspace,
@@ -130,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabaseReady,
       liveApi,
     }),
-    [status, session, profile, workspace, signOut, refreshProfile, supabaseReady, liveApi],
+    [status, profileStatus, session, profile, workspace, signOut, refreshProfile, supabaseReady, liveApi],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -141,3 +148,6 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
+
+/** Re-export for legacy imports */
+export { mapApiRoleToWorkspace } from '@/auth/roles';

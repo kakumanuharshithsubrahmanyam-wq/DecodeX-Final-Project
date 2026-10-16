@@ -27,6 +27,12 @@ Roles: `citizen`, `officer`, `department_administrator`, `platform_administrator
 
 Treat legacy `administrator` as `platform_administrator` in UI labels.
 
+**Phase 5 mapping:** `frontend/src/auth/roles.ts` maps API roles to workspace kinds (`citizen`, `officer`, `dept_admin`, `platform_admin`, `moderator`) and applies route allowlists. `/api/v1/me` is authoritative; guards wait for `profileStatus === 'ready'`. Display labels for status/priority/category use `src/i18n/displayLabels.ts` while API payloads keep canonical enum values.
+
+**Localization:** portal copy lives under `portal.*` in `src/i18n/en.ts` / `te.ts` (sourced from `portal-en.ts` / `portal-te.ts`). Enum display is translated; citizen-submitted text is not.
+
+**Data honesty:** `DataSourceNotice` marks demo, illustrative charts, local-only community/SLA, and the scripted help assistant. Live admin totals use `GET /api/v1/analytics/overview` when `liveApi` is true (no monthly time series from API — trend chart stays illustrative).
+
 ## Data access rules
 
 | Concern | Source |

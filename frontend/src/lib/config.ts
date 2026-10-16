@@ -11,6 +11,10 @@ export function isApiConfigured(): boolean {
 
 /** Explicit demo dataset — never mixed with live API grievances */
 export function isExplicitDemoMode(): boolean {
+  if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE === 'true') {
+    console.error('VITE_DEMO_MODE must not be enabled in production builds.');
+    return false;
+  }
   return import.meta.env.VITE_DEMO_MODE === 'true';
 }
 

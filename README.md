@@ -2,7 +2,7 @@
 
 Citizen-centric digital urban governance: AI-assisted grievance redressal, SLA-aware operations, and staged multichannel intake (web first).
 
-**Frontend:** Vite app in `frontend/` (integrated from `rtgs-frontend.zip`), Supabase Auth, English/Telugu i18n, API client. Set `VITE_*` in `frontend/.env.local` and run `npm run dev`. Live Supabase E2E **not verified** in CI without dev credentials.
+**Frontend:** Vite app in `frontend/` (integrated from `rtgs-frontend.zip`), Supabase Auth, English/Telugu i18n (`portal.*` strings), canonical role mapping (`src/auth/roles.ts`), and API client. Set `VITE_*` in `frontend/.env.local` and run `npm run dev`. Live Supabase E2E **not verified** in this workspace without dev credentials (see [docs/SMOKE_TEST.md](docs/SMOKE_TEST.md)).
 
 RTGS is **not** presented as an official government service unless your deployer explicitly configures and authorizes that relationship.
 

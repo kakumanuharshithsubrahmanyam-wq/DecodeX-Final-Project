@@ -24,6 +24,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   if (auth.status === 'guest') {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
+  if (auth.profileStatus === 'loading' || auth.profileStatus === 'idle') {
+    return <LoadingScreen />;
+  }
+  if (auth.profileStatus === 'error') {
+    return <Navigate to="/login" replace state={{ reason: 'profile' }} />;
+  }
   return <GrievanceProvider>{children}</GrievanceProvider>;
 }
 

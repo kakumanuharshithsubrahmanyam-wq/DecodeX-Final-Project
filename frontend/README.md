@@ -26,7 +26,7 @@ Never set `SUPABASE_SERVICE_ROLE_KEY` or backend secrets in `VITE_*` variables.
 
 - `npm run dev` — development server
 - `npm run build` — production bundle
-- `npm test` — Vitest (includes English/Telugu dictionary key parity)
+- `npm test` — Vitest (role mapping, EN/TE key parity, portal workflow keys)
 - `npm run typecheck` — TypeScript
 
 ## Architecture
@@ -41,6 +41,20 @@ Never set `SUPABASE_SERVICE_ROLE_KEY` or backend secrets in `VITE_*` variables.
 | `src/i18n/` | English/Telugu dictionaries and `document.lang` |
 
 ## Roles
+
+Canonical API roles (from `GET /api/v1/me`): `citizen`, `officer`, `department_administrator`, `platform_administrator`, `community_moderator`, plus legacy `administrator` (normalized to platform admin).
+
+Frontend workspace routing (`src/auth/roles.ts`):
+
+| API role | Workspace | Notes |
+|----------|-----------|--------|
+| `citizen` | `citizen` | Default from signup trigger |
+| `officer` | `officer` | Assigned grievances only (API enforced) |
+| `department_administrator` | `dept_admin` | Dept analytics + officer routes |
+| `platform_administrator`, `administrator` | `platform_admin` | Full admin surfaces |
+| `community_moderator` | `moderator` | Community/help only — no private grievance APIs |
+
+Route allowlists in `canAccessPath()` are UX-only; authorization remains on the backend. Unknown roles from `/me` fail closed (`profileStatus: error`).
 
 - **Citizens:** register via Supabase Auth; profile role `citizen` from DB trigger `handle_new_user`.
 - **Staff:** provisioned server-side per [backend/docs/ACCOUNT_PROVISIONING.md](../backend/docs/ACCOUNT_PROVISIONING.md).
