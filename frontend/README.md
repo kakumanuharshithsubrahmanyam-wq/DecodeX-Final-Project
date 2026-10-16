@@ -1,29 +1,37 @@
-# RTGS Frontend — Integration status (Phase 4)
+# RTGS Frontend
 
-## Blocker
+## Current status — blocked on archive
 
-**Claude's UI is not present in this repository.** The `frontend/` directory currently contains:
+**`rtgs-frontend.zip` is not in the workspace.** Searches of the repo root, Downloads, and Spotlight found no copy of the supplied frontend archive.
 
-- `.env.example`
-- Shared integration helpers under `src/lib/` (API client, auth helper, types)
-- This README
+Per project rules, the Claude/Vite prototype cannot be recreated or faked. Integration, localization, auth wiring, and accessibility work **start only after** the zip is added.
 
-There is **no** Vite app, `package.json`, routes, or visual design to integrate yet.
+### What to do
 
-## When Claude delivers the UI
+1. Copy `rtgs-frontend.zip` into the repository root:
+   - `DecodeX Final Project/rtgs-frontend.zip`
+2. Follow [docs/FRONTEND_IMPORT.md](../docs/FRONTEND_IMPORT.md).
+3. Re-run the frontend integration task (Phases 1–9).
 
-1. Import Claude's React + Vite + Tailwind project **into this folder** without replacing its visual design.
-2. Copy `.env.example` → `.env.local` and set:
-   - `VITE_API_BASE_URL`
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-3. Wire screens to `@/lib/api-client` and `@/lib/auth` (adjust import paths to match Claude's alias config).
-4. Follow [docs/FRONTEND_INTEGRATION.md](../docs/FRONTEND_INTEGRATION.md) and [docs/API_CONTRACT.md](../docs/API_CONTRACT.md).
-5. Run `npm run dev` and verify against a local or dev backend.
+### Already in this folder (keep when merging)
 
-## Do not
+| Path | Purpose |
+|------|---------|
+| `src/lib/api-client.ts` | FastAPI client, Bearer token, attachments |
+| `src/lib/auth.ts` | Supabase browser client (anon key only) |
+| `src/lib/types.ts` | Shared API types |
+| `.env.example` | `VITE_API_BASE_URL`, `VITE_SUPABASE_*` |
+| `src/vite-env.d.ts` | Vite env typing |
 
-- Embed `SUPABASE_SERVICE_ROLE_KEY` or any backend secret in frontend env vars.
-- Claim success for API calls without checking response status and error envelopes.
+### Environment (browser-safe only)
 
-See [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md) for Vercel deployment after the app exists.
+```bash
+cp .env.example .env.local
+# VITE_API_BASE_URL=http://127.0.0.1:8000
+# VITE_SUPABASE_URL=
+# VITE_SUPABASE_ANON_KEY=
+```
+
+Never set `SUPABASE_SERVICE_ROLE_KEY` or backend secrets in `VITE_*` variables.
+
+See [docs/FRONTEND_INTEGRATION.md](../docs/FRONTEND_INTEGRATION.md), [docs/API_CONTRACT.md](../docs/API_CONTRACT.md), [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md).

@@ -2,7 +2,7 @@
 
 Citizen-centric digital urban governance: AI-assisted grievance redressal, SLA-aware operations, and staged multichannel intake (web first).
 
-**Phase 4 status:** Deployment readiness (Render blueprint, CI, smoke docs, shared `frontend/src/lib` API client). **Claude UI not in repo** — integration blocked until Vite app is imported. Live Supabase smoke **not verified** (no `backend/.env` in workspace).
+**Frontend status:** **`rtgs-frontend.zip` not found in the workspace** — supplied UI must be added to the repo root before merge into `frontend/`. Shared API/auth helpers exist under `frontend/src/lib/`. Live Supabase smoke **not verified** without dev `backend/.env`.
 
 RTGS is **not** presented as an official government service unless your deployer explicitly configures and authorizes that relationship.
 
