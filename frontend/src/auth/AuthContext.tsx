@@ -74,7 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return;
       }
-      const res = await api.me();
+      await api.health().catch(() => undefined);
+      if (reqId !== profileReq.current) return;
+      let res: Awaited<ReturnType<typeof api.me>> | null = null;
+      let lastErr: unknown;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          res = await api.me();
+          lastErr = undefined;
+          break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (!res) throw lastErr;
       if (reqId !== profileReq.current) return;
       const role = normalizeApiRole(res.data.role);
       if (!role) {

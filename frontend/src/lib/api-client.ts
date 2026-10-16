@@ -34,7 +34,7 @@ async function request<T>(
   }
   const res = await fetch(`${baseUrl()}${path}`, {
     ...options,
-    signal: options.signal ?? AbortSignal.timeout(20000),
+    signal: options.signal ?? AbortSignal.timeout(45000),
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,

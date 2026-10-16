@@ -61,6 +61,9 @@ export function LoginPage() {
         {auth.profileStatus === 'error' && (
           <div className="error-banner" role="alert">
             {t('auth.profileError')}
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => void auth.refreshProfile()}>
+              {t('auth.retry')}
+            </button>
           </div>
         )}
         <form onSubmit={onSubmit} noValidate>
