@@ -2,7 +2,7 @@
 
 Citizen-centric digital urban governance: AI-assisted grievance redressal, SLA-aware operations, and staged multichannel intake (web first).
 
-**Frontend:** React + Vite app in `frontend/`, Supabase Auth, bilingual UI (`portal.*`), canonical roles (`src/auth/roles.ts`), live/demo data separation, and FastAPI client. Phase 6 design: [docs/PHASE6_DESIGN_ARCHIVE.md](docs/PHASE6_DESIGN_ARCHIVE.md). Phase 7 dev integration status: [docs/PHASE7_VERIFICATION.md](docs/PHASE7_VERIFICATION.md). Set `VITE_*` in `frontend/.env.local` and run `npm run dev`. Live Supabase E2E requires local dev credentials (`python backend/scripts/check_dev_env.py`).
+**Frontend:** React + Vite app in `frontend/`, Supabase Auth, bilingual UI (`portal.*`), canonical roles (`src/auth/roles.ts`), live/demo data separation, and FastAPI client. Phase 6 design: [docs/PHASE6_DESIGN_ARCHIVE.md](docs/PHASE6_DESIGN_ARCHIVE.md). Phase 7/7.5 status: [docs/PHASE7_VERIFICATION.md](docs/PHASE7_VERIFICATION.md), [docs/PHASE7_5_VERIFICATION.md](docs/PHASE7_5_VERIFICATION.md). Set `VITE_*` in `frontend/.env.local` and run `npm run dev`. Pre-flight: `python backend/scripts/check_dev_env.py`. Browser demo tests: `cd frontend && npm run test:e2e:demo`.
 
 RTGS is **not** presented as an official government service unless your deployer explicitly configures and authorizes that relationship.
 
