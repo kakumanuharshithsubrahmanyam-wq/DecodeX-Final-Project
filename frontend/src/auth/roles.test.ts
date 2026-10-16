@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAccessPath, mapApiRoleToWorkspace, normalizeApiRole } from './roles';
+import { canAccessPath, mapApiRoleToWorkspace, normalizeApiRole, workspaceHome } from './roles';
 
 describe('role mapping', () => {
   it('normalizes legacy administrator', () => {
@@ -19,6 +19,11 @@ describe('role mapping', () => {
   it('restricts citizen from officer routes', () => {
     expect(canAccessPath('citizen', '/officer')).toBe(false);
     expect(canAccessPath('citizen', '/dashboard')).toBe(true);
+  });
+
+  it('sends officers to case management home', () => {
+    expect(workspaceHome('officer')).toBe('/officer');
+    expect(workspaceHome('citizen')).toBe('/dashboard');
   });
 
   it('restricts moderator from grievance register', () => {

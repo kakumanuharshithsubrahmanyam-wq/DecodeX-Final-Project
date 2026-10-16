@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
+import { workspaceHome } from '@/auth/roles';
 import { useI18n } from '@/i18n';
 import { isSupabaseConfigured } from '@/lib/config';
 import { signUpCitizen } from '@/lib/auth';
@@ -17,7 +18,7 @@ export function RegisterPage() {
   const [busy, setBusy] = useState(false);
 
   if (auth.status === 'authenticated') {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={workspaceHome(auth.workspace)} replace />;
   }
 
   const onSubmit = async (e: FormEvent) => {

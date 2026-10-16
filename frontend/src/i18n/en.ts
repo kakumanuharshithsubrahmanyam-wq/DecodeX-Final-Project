@@ -51,6 +51,8 @@ const en = {
     sessionExpired: 'Your session expired. Please sign in again.',
     unauthorized: 'You do not have access to this page.',
     loading: 'Checking your session…',
+    profileError: 'Could not load your profile from the API. Check that the backend is reachable, then try again.',
+    retry: 'Try again',
     errors: {
       invalidCredentials: 'Email or password is incorrect.',
       weakPassword: 'Password must be at least 8 characters.',

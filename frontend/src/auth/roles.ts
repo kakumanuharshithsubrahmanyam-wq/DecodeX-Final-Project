@@ -42,6 +42,20 @@ export function mapApiRoleToWorkspace(role: string | null | undefined): Workspac
   }
 }
 
+export function workspaceHome(workspace: WorkspaceKind): string {
+  switch (workspace) {
+    case 'officer':
+      return '/officer';
+    case 'dept_admin':
+    case 'platform_admin':
+      return '/admin';
+    case 'moderator':
+      return '/community';
+    default:
+      return '/dashboard';
+  }
+}
+
 /** Route prefixes allowed per workspace (UX only — backend enforces data). */
 export function canAccessPath(workspace: WorkspaceKind, pathname: string): boolean {
   const p = pathname.split('?')[0];
