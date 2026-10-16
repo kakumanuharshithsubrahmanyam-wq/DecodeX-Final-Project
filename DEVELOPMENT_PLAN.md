@@ -72,31 +72,26 @@ Single repo; contract: [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
 
 ---
 
-## Phase 4 — Frontend integration, multichannel, deploy
+## Phase 4 — Frontend integration + deployment readiness (partial ✅)
 
-**Goal:** Claude UI wired to API; PWA polish; staged WhatsApp/voice; production deploy.
+**Completed:**
 
-**Tasks:**
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [docs/SMOKE_TEST.md](docs/SMOKE_TEST.md), [render.yaml](render.yaml), CI workflow
+- Shared `frontend/src/lib/` API client (no Claude UI pages)
+- Production startup guard for `AUTH_DEV_BYPASS`
+- Live test placeholder (`RTGS_LIVE_TEST=1`)
 
-1. Import frontend; API client; role-based routing.
-2. Citizen track + SLA warnings; officer + admin screens.
-3. Email/SMS/web push providers if configured.
-4. WhatsApp/voice webhooks (feature-flagged).
-5. CI, Render + Vercel, smoke tests.
-6. Community/municipal feeds **only if** security review passed (otherwise remain Future).
+**Blocked:**
 
-**Acceptance:**
+- Claude Vite app import and Vercel deploy
+- Live Supabase E2E on dedicated RTGS dev project (configure `backend/.env` + link Supabase CLI)
 
-- End-to-end: submit → assign → resolve → feedback → citizen notification.
-- Staging secrets in host env only.
-- Realtime or “live updates” not claimed without test evidence.
+**Remaining:** Import UI → wire lib → run manual smoke on dev → staging deploy (not production).
 
 ---
 
-## Phase 2 next action (when authorized)
+## Post-Phase 4 next action
 
-1. Scaffold `backend/` (FastAPI, `GET /api/v1/health`, JWT deps).
-2. Create dev Supabase; apply `20251016120000_initial_schema.sql` then `20251016130000_platform_redesign_extensions.sql`; run `seed.sql`.
-3. Implement **MVP** endpoints: `GET /me`, `POST/GET /grievances`, `GET /grievances/{id}/track`, `POST /grievances/{id}/analyze`, status transition route, `POST /grievances/{id}/feedback`.
-
-Do not start Phase 2 until explicitly instructed.
+1. Claude: deliver full Vite app into `frontend/` preserving design.
+2. Cursor/user: create **RTGS-only** Supabase dev project; `supabase link` + `db push` + bucket + roles.
+3. Configure Render/Vercel staging; run [docs/SMOKE_TEST.md](docs/SMOKE_TEST.md).

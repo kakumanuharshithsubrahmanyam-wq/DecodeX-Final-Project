@@ -1,0 +1,7 @@
+# Supabase CLI config — link to your RTGS *development* project before db push
+# https://supabase.com/docs/guides/cli/config
+
+project_id = "YOUR_RTGS_DEV_PROJECT_REF"
+
+[db]
+major_version = 15

@@ -1,0 +1,9 @@
+{
+  "name": "rtgs-frontend",
+  "private": true,
+  "description": "Claude UI lands here; shared lib deps until full Vite app is imported",
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8"
+  }
+}

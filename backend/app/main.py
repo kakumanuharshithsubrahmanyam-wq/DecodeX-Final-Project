@@ -31,4 +31,9 @@ app.include_router(api_router, prefix=settings.api_prefix)
 
 @app.on_event("startup")
 async def startup() -> None:
-    logger.info("Starting %s v%s env=%s", settings.app_name, __version__, settings.app_env)
+    cfg = get_settings()
+    if cfg.app_env == "production" and cfg.auth_dev_bypass:
+        raise RuntimeError("AUTH_DEV_BYPASS must be disabled when APP_ENV=production")
+    if cfg.app_env == "production" and not cfg.supabase_jwt_secret and not cfg.resolved_jwks_url:
+        logger.warning("Production JWT verification may be misconfigured (no secret/JWKS)")
+    logger.info("Starting %s v%s env=%s", cfg.app_name, __version__, cfg.app_env)
