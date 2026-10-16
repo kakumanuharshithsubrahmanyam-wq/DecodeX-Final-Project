@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useAuth } from '@/auth/AuthContext';
 import { api } from '@/lib/api-client';
 import { canUseLiveApi, isExplicitDemoMode } from '@/lib/config';
+import { localizedApiError } from '@/lib/apiErrors';
+import { useI18n } from '@/i18n';
 import { detailToUi, summaryToUi, type UiGrievance } from '@/lib/grievance-mapper';
 import { seedData, seedNotices, type Notice } from '@/demo/seed';
 
@@ -26,6 +28,7 @@ const GrievanceContextProvider = GrievanceContext.Provider;
 
 export function GrievanceProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
+  const { t } = useI18n();
   const live = canUseLiveApi(Boolean(auth.session));
   const demoOnly = isExplicitDemoMode() || !live;
 
@@ -59,13 +62,13 @@ export function GrievanceProvider({ children }: { children: ReactNode }) {
         })),
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load complaints');
+      setError(localizedApiError(t, e));
       setGrievances([]);
       setMode('empty');
     } finally {
       setLoading(false);
     }
-  }, [demoOnly, citizenLabel]);
+  }, [demoOnly, citizenLabel, t]);
 
   useEffect(() => {
     if (auth.status === 'loading') return;

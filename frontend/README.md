@@ -33,7 +33,8 @@ Never set `SUPABASE_SERVICE_ROLE_KEY` or backend secrets in `VITE_*` variables.
 
 | Path | Role |
 |------|------|
-| `src/RtgsPortal.tsx` | Supplied UI (citizen/officer/admin workflows) |
+| `src/RtgsPortal.tsx` | Main portal UI (citizen/officer/admin workflows) |
+| `docs/PHASE6_DESIGN_ARCHIVE.md` | New ZIP design reference status (repo root `docs/`) |
 | `src/App.tsx` | Auth routes and guards |
 | `src/auth/` | Supabase session + `GET /api/v1/me` role |
 | `src/data/GrievanceContext.tsx` | Live API vs isolated demo sample data |

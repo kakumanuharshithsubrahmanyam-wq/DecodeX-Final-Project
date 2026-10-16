@@ -68,6 +68,16 @@ const en = {
     required: 'Required',
     optional: 'Optional',
   },
+  errors: {
+    api: {
+      generic: 'Something went wrong. Please try again.',
+      UNAUTHORIZED: 'Your session expired or you are not signed in.',
+      FORBIDDEN: 'You do not have permission for this action.',
+      NOT_FOUND: 'The requested record was not found.',
+      VALIDATION_ERROR: 'Please check your input and try again.',
+      INTERNAL_ERROR: 'The server could not complete this request.',
+    },
+  },
   common: {
     loading: 'Loading…',
     save: 'Save',
