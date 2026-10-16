@@ -4,6 +4,8 @@ Schema sources (apply in order):
 
 1. `supabase/migrations/20251016120000_initial_schema.sql`
 2. `supabase/migrations/20251016130000_platform_redesign_extensions.sql`
+3. `supabase/migrations/20251016140000_rls_role_helpers.sql`
+4. `supabase/migrations/20251016150000_phase3_ai_provenance.sql`
 
 **Legend:** MVP = core delivery | Next = following feature phases | Future = optional expansion
 

@@ -2,7 +2,7 @@
 
 Citizen-centric digital urban governance: AI-assisted grievance redressal, SLA-aware operations, and staged multichannel intake (web first).
 
-**Phase 2 status:** FastAPI backend MVP implemented with rules-based AI, tests, and Supabase-ready migrations. Frontend remains separate (Claude UI).
+**Phase 3 status:** Live-integration hardening, attachments (Storage), JWT/JWKS, enhanced AI pipeline (Telugu/English rules + optional LLM), reopen workflow, dept admin queue. **Frontend:** still placeholder (`.env.example` only) — Claude UI not merged yet.
 
 RTGS is **not** presented as an official government service unless your deployer explicitly configures and authorizes that relationship.
 
@@ -26,6 +26,7 @@ Apply in order:
 1. `20251016120000_initial_schema.sql`
 2. `20251016130000_platform_redesign_extensions.sql`
 3. `20251016140000_rls_role_helpers.sql`
+4. `20251016150000_phase3_ai_provenance.sql`
 
 Using Supabase CLI (recommended):
 
@@ -79,7 +80,19 @@ source .venv/bin/activate
 pytest
 ```
 
-**Last run:** 15 passed (SQLite in-memory fixtures; no live Supabase).
+**Last run:** 25 passed (unit + mocked integration on SQLite; no live Supabase in CI).
+
+### Live Supabase verification (manual)
+
+When `backend/.env` is configured:
+
+```bash
+cd backend && source .venv/bin/activate
+uvicorn app.main:app --port 8000
+curl -s http://localhost:8000/api/v1/health | jq .
+```
+
+Apply migrations via `supabase db push`, create private bucket per `supabase/storage/complaint-attachments-policy.md`, provision roles per `backend/docs/ACCOUNT_PROVISIONING.md`.
 
 ## Frontend setup (Phase 4)
 

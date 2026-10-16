@@ -71,7 +71,7 @@ Providers are swappable behind Python protocols; no provider SDK in frontend.
 
 | Use | Phase | Notes |
 |-----|-------|-------|
-| Complaint evidence | Next | Supabase Storage bucket; signed URLs |
+| Complaint evidence | **MVP (Phase 3)** | Private bucket `complaint-attachments`; backend signed upload/download URLs |
 | Resolution before/after | Next | `attachment_role` = before/after |
 | Public community media | Future | Separate bucket; moderation |
 

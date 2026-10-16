@@ -105,6 +105,7 @@ class Grievance(Base):
     subcategory_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("grievance_categories.id"))
     intake_channel: Mapped[IntakeChannel] = mapped_column(String(16), default=IntakeChannel.web)
     ward_or_locality: Mapped[Optional[str]] = mapped_column(Text)
+    reopened_count: Mapped[int] = mapped_column(Integer, default=0)
     urgency_score: Mapped[Optional[float]] = mapped_column(Numeric(5, 4))
     requires_human_review: Mapped[bool] = mapped_column(Boolean, default=False)
     resolution_due_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
@@ -166,6 +167,27 @@ class AIAnalysis(Base):
     requires_human_review: Mapped[bool] = mapped_column(Boolean, default=True)
     explanation: Mapped[Optional[str]] = mapped_column(Text)
     follow_up_questions: Mapped[list] = mapped_column(JsonType, default=list)
+    detected_language: Mapped[Optional[str]] = mapped_column(String(8))
+    provider_name: Mapped[Optional[str]] = mapped_column(String(64))
+    provider_model: Mapped[Optional[str]] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Attachment(Base):
+    __tablename__ = "attachments"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    grievance_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("grievances.id"))
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id"))
+    file_name: Mapped[str] = mapped_column(Text, nullable=False)
+    content_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    storage_path: Mapped[str] = mapped_column(Text, nullable=False)
+    attachment_role: Mapped[str] = mapped_column(String(32), default="evidence")
+    upload_status: Mapped[str] = mapped_column(String(16), default="pending")
+    image_analysis: Mapped[Optional[dict]] = mapped_column(JsonType)
+    exif_location_confirmed: Mapped[Optional[bool]] = mapped_column(Boolean)
+    quality_flags: Mapped[list] = mapped_column(JsonType, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

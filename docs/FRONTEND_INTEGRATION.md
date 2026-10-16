@@ -6,6 +6,8 @@ RTGS: citizen-centric urban governance — responsive web first, API-driven data
 
 - React 18+, TypeScript, Vite, Tailwind CSS, shadcn/ui.
 - Source under `frontend/` (standard Vite layout).
+- **Current repo state (Phase 3):** `frontend/` contains only `.env.example` — Claude UI is **not** present yet. Do not invent UI; wire API client when the app is imported.
+
 - Mobile-friendly layouts; PWA manifest optional in Phase 4 — **not** a native app in MVP.
 
 ## Environment

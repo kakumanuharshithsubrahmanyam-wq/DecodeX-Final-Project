@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 import re
 
+from app.ai.keywords_te import TELUGU_CATEGORY_KEYWORDS, TELUGU_FOLLOW_UPS, TELUGU_URGENT
+from app.ai.language import TELUGU_RANGE
 from app.models.enums import PriorityLevel
 
 
@@ -53,27 +55,40 @@ CATEGORY_RULES: list[CategoryRule] = [
     CategoryRule("HEALTH", "Public health", ["stray", "mosquito", "fogging", "clinic", "health"], "HEALTH"),
 ]
 
+VAGUE_PATTERNS = [
+    r"^\s*(bad|issue|problem|help|fix this)\s*$",
+    r"\b(something|anything|stuff)\b",
+]
+
 
 def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
 
-def check_completeness(description: str, location_text: str, ward: str | None) -> list[str]:
+def check_completeness(description: str, location_text: str, ward: str | None, language: str = "en") -> list[str]:
     missing: list[str] = []
-    desc = normalize_text(description)
-    if len(desc) < 40:
+    desc = description.strip()
+    desc_norm = normalize_text(description)
+    if len(desc) < 40 or any(re.search(p, desc_norm) for p in VAGUE_PATTERNS):
         missing.append("detailed_description")
     if not location_text or len(location_text.strip()) < 5:
         missing.append("location")
-    if not ward and not re.search(r"\b(ward|colony|street|road|area|near)\b", desc + " " + (location_text or "")):
+    loc_hints_en = r"\b(ward|colony|street|road|area|near)\b"
+    loc_hints_te = r"(వార్డ్|కాలనీ|రోడ్|దగ్గర)"
+    combined = desc + " " + (location_text or "")
+    if not ward and not re.search(loc_hints_en, combined, re.I) and not re.search(loc_hints_te, combined):
         missing.append("locality_or_landmark")
-    if not re.search(r"\b(since|days|weeks|months|yesterday|today|hours)\b", desc):
+    duration_en = r"\b(since|days|weeks|months|yesterday|today|hours)\b"
+    duration_te = r"(రోజుల|నెల|week|month|yesterday|today)"
+    if not re.search(duration_en, desc_norm) and not re.search(duration_te, desc, re.I):
         missing.append("duration_or_timeline")
+    if language == "te" and len(TELUGU_RANGE.findall(desc)) < 2 and len(desc) < 60:
+        missing.append("detailed_description")
     return missing
 
 
-def generate_follow_up_questions(missing: list[str]) -> list[dict]:
-    mapping = {
+def generate_follow_up_questions(missing: list[str], language: str = "en") -> list[dict]:
+    mapping_en = {
         "detailed_description": ("desc_detail", "Can you describe exactly what happened and how it affects daily life?", True),
         "location": ("loc_detail", "Please provide the exact location or nearest landmark.", True),
         "locality_or_landmark": ("locality", "Which ward, colony, or landmark is closest to the issue?", True),
@@ -81,18 +96,25 @@ def generate_follow_up_questions(missing: list[str]) -> list[dict]:
     }
     questions = []
     for m in missing:
-        if m in mapping:
-            qid, qtext, required = mapping[m]
+        if language in {"te", "mixed"} and m in TELUGU_FOLLOW_UPS:
+            qid, qtext, required = TELUGU_FOLLOW_UPS[m]
+            questions.append({"id": qid, "question": qtext, "required": required})
+        elif m in mapping_en:
+            qid, qtext, required = mapping_en[m]
             questions.append({"id": qid, "question": qtext, "required": required})
     return questions
 
 
-def match_category(description: str) -> tuple[CategoryRule | None, Decimal]:
+def match_category(description: str, language: str = "en") -> tuple[CategoryRule | None, Decimal]:
     desc = normalize_text(description)
+    raw = description
     best: CategoryRule | None = None
     best_score = 0
     for rule in CATEGORY_RULES:
         score = sum(1 for kw in rule.keywords if kw in desc)
+        if language in {"te", "mixed"}:
+            te_kws = TELUGU_CATEGORY_KEYWORDS.get(rule.code, [])
+            score += sum(1 for kw in te_kws if kw in raw or kw in desc)
         if score > best_score:
             best_score = score
             best = rule
@@ -102,19 +124,25 @@ def match_category(description: str) -> tuple[CategoryRule | None, Decimal]:
     return best, confidence
 
 
-def assess_urgency(description: str) -> tuple[Decimal, PriorityLevel, bool]:
+def assess_urgency(description: str, language: str = "en") -> tuple[Decimal, PriorityLevel, bool]:
     desc = normalize_text(description)
+    raw = description
     human_review = False
-    for kw in URGENT_KEYWORDS:
-        if kw in desc:
+    urgent_terms = list(URGENT_KEYWORDS)
+    if language in {"te", "mixed"}:
+        urgent_terms.extend(TELUGU_URGENT)
+    for kw in urgent_terms:
+        if kw in desc or kw in raw:
             human_review = True
             return Decimal("0.92"), PriorityLevel.critical, human_review
-    if re.search(r"\b(urgent|immediate|danger|unsafe|hazard)\b", desc):
+    if re.search(r"\b(urgent|immediate|danger|unsafe|hazard)\b", desc) or "ప్రమాద" in raw:
         human_review = True
         return Decimal("0.78"), PriorityLevel.high, human_review
     if re.search(r"\b(blocked|overflow|no water|no power)\b", desc):
         return Decimal("0.55"), PriorityLevel.medium, False
-    return Decimal("0.25"), PriorityLevel.low, False
+    if re.search(r"\b(but|however|although)\b.+\b(but|however)\b", desc):
+        human_review = True
+    return Decimal("0.25"), PriorityLevel.low, human_review
 
 
 def summarize(description: str, max_len: int = 280) -> str:
@@ -128,29 +156,35 @@ def analyze_complaint(
     description: str,
     location_text: str,
     ward_or_locality: str | None = None,
+    language: str = "en",
 ) -> AnalysisResult:
-    missing = check_completeness(description, location_text, ward_or_locality)
-    follow_ups = generate_follow_up_questions(missing)
-    category, cat_confidence = match_category(description)
-    urgency_score, urgency_label, urgent_review = assess_urgency(description)
+    missing = check_completeness(description, location_text, ward_or_locality, language)
+    follow_ups = generate_follow_up_questions(missing, language)
+    category, cat_confidence = match_category(description, language)
+    urgency_score, urgency_label, urgent_review = assess_urgency(description, language)
 
     confidence = cat_confidence
     if missing:
         confidence = min(confidence, Decimal("0.55"))
     requires_review = urgent_review or bool(missing) or confidence < Decimal("0.5")
 
-    explanation_parts = []
+    explanation_parts = [
+        "Heuristic rules output — not a calibrated probability or ML model score.",
+    ]
+    if language != "en":
+        explanation_parts.append(f"Detected language path: {language}. Full translation service may be unavailable.")
     if category:
         explanation_parts.append(
-            f"Keyword rules suggest category '{category.name}' (code {category.code}) "
-            f"with confidence {cat_confidence}."
+            f"Keyword rules suggest category '{category.name}' (code {category.code}) with heuristic confidence {cat_confidence}."
         )
     else:
         explanation_parts.append("No strong category keyword match; manual classification recommended.")
     if missing:
         explanation_parts.append(f"Missing information detected: {', '.join(missing)}.")
     if urgent_review:
-        explanation_parts.append("Potentially urgent language detected — flagged for human review (not an emergency alert).")
+        explanation_parts.append(
+            "Potentially urgent language detected — flagged for human review (not an emergency alert)."
+        )
 
     return AnalysisResult(
         summary=summarize(description),
@@ -170,5 +204,6 @@ def analyze_complaint(
             "keywords": [
                 kw for kw in (category.keywords if category else []) if kw in normalize_text(description)
             ],
+            "detected_language": language,
         },
     )

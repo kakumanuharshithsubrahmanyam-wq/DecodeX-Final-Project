@@ -464,9 +464,12 @@ Role: platform admin.
 | 0.1.0 | 2026-10-16 | Initial contract |
 | 1.1.0 | 2026-10-16 | Platform redesign: lifecycle, roles, SLA, feedback, phased endpoints |
 | 1.1.1 | 2026-10-16 | Phase 2: FastAPI implementation notes; `GET /health` includes `database` field |
+| 1.2.0 | 2026-10-16 | Phase 3: attachments, reopen, analyze-images, dept queue, download URL |
 
 ### Phase 2 implementation status
 
 **Implemented (MVP):** `/health`, `/me`, `/me/notification-preferences`, `/categories`, grievance CRUD/track/analyze/transitions/assignments/escalate/feedback, `/departments` (basic), `/notifications`, `/analytics/overview`, `/analytics/audit-logs`.
 
-**Not implemented yet:** attachments, chat, integrations, community, municipal feeds, `/analytics/trends`, category admin POST/PATCH, `/sla-policies` admin, `/notifications/read-all`, `/grievances/{id}/reopen`.
+**Phase 3 implemented:** attachment upload/download URLs, `/grievances/{id}/reopen`, `/grievances/{id}/analyze-images` (honest not-configured when no vision provider), `/dept/grievances`, AI provenance fields, JWT JWKS support on backend.
+
+**Not implemented yet:** chat, WhatsApp/voice integrations, community, municipal feeds, `/analytics/trends`, category admin POST/PATCH, `/sla-policies` admin, `/notifications/read-all`, full vision provider wiring.

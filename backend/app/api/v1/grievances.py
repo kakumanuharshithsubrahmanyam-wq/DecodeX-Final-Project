@@ -24,9 +24,22 @@ from app.schemas.grievance import (
     SubmitAdditionalInfo,
     TransitionRequest,
 )
+from app.services import attachments as att_svc
 from app.services import grievances as svc
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/grievances")
+
+
+class UploadUrlRequest(BaseModel):
+    file_name: str
+    content_type: str
+    size_bytes: int
+    attachment_role: str = "evidence"
+
+
+class ReopenRequest(BaseModel):
+    reason: str = Field(..., min_length=5)
 
 
 @router.post("", status_code=201)
@@ -250,6 +263,52 @@ async def feedback(db: DbSession, user: CurrentUser, grievance_id: UUID, body: F
             "created_at": fb.created_at,
         }
     }
+
+
+@router.post("/{grievance_id}/reopen")
+async def reopen(db: DbSession, user: CurrentUser, grievance_id: UUID, body: ReopenRequest) -> dict:
+    g = await svc.reopen_grievance(db, user, grievance_id, body.reason)
+    analysis = await svc.latest_analysis(db, g.id)
+    return {"data": svc.grievance_to_detail(g, analysis)["grievance"]}
+
+
+@router.post("/{grievance_id}/attachments/upload-url")
+async def attachment_upload_url(
+    db: DbSession, user: CurrentUser, grievance_id: UUID, body: UploadUrlRequest
+) -> dict:
+    data = await att_svc.create_upload_url(
+        db,
+        user,
+        grievance_id,
+        file_name=body.file_name,
+        content_type=body.content_type,
+        size_bytes=body.size_bytes,
+        attachment_role=body.attachment_role,
+    )
+    return {"data": data}
+
+
+@router.post("/{grievance_id}/attachments/{attachment_id}/complete")
+async def attachment_complete(
+    db: DbSession, user: CurrentUser, grievance_id: UUID, attachment_id: UUID
+) -> dict:
+    att = await att_svc.complete_upload(db, user, grievance_id, attachment_id)
+    return {"data": {"id": att.id, "upload_status": att.upload_status}}
+
+
+@router.get("/{grievance_id}/attachments/{attachment_id}/download-url")
+async def attachment_download_url(
+    db: DbSession, user: CurrentUser, grievance_id: UUID, attachment_id: UUID
+) -> dict:
+    return {"data": await att_svc.get_download_url(db, user, grievance_id, attachment_id)}
+
+
+@router.post("/{grievance_id}/analyze-images")
+async def analyze_images(
+    db: DbSession, user: CurrentUser, grievance_id: UUID, attachment_id: UUID = Query(...)
+) -> dict:
+    att = await svc.run_image_analysis(db, user, grievance_id, attachment_id)
+    return {"data": att.image_analysis}
 
 
 @router.get("/{grievance_id}/feedback")

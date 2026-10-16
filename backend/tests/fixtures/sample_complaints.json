@@ -1,0 +1,30 @@
+[
+  {
+    "id": "en_clear_water",
+    "language": "en",
+    "description": "Drinking water supply stopped in Ward 12 near Gandhi Nagar for the past three days affecting many households.",
+    "location_text": "Gandhi Nagar Ward 12",
+    "expect_category": "WATER"
+  },
+  {
+    "id": "en_vague",
+    "language": "en",
+    "description": "bad issue help",
+    "location_text": "somewhere",
+    "expect_missing": true
+  },
+  {
+    "id": "te_water",
+    "language": "te",
+    "description": "మా వార్డ్ 5 లో నీరు రావడం లేదు, రెండు రోజులుగా tap dry — drinking water problem near market.",
+    "location_text": "Ward 5 market area",
+    "expect_category": "WATER"
+  },
+  {
+    "id": "urgent_en",
+    "language": "en",
+    "description": "Live wire sparking on the school road since yesterday morning, very dangerous for children walking home.",
+    "location_text": "School road sector 2",
+    "expect_review": true
+  }
+]

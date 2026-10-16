@@ -8,13 +8,16 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.ai.rules_engine import analyze_complaint
+from app.ai.pipeline import run_analysis_pipeline
+from app.ai.image_provider import analyze_grievance_image
 from app.core.exceptions import conflict, forbidden, not_found, validation_error
+from app.config import get_settings
 from app.core.permissions import (
     can_assign,
     can_read_grievance,
     can_transition,
     is_citizen,
+    is_dept_admin,
     is_platform_admin,
     require_grievance_read,
     user_department_ids,
@@ -157,13 +160,35 @@ async def list_grievances(
         pass
     else:
         dept_ids = await user_department_ids(db, user.id)
-        stmt = stmt.join(Assignment, Assignment.grievance_id == Grievance.id, isouter=True).where(
-            or_(
-                Assignment.is_current.is_(True) & Assignment.department_id.in_(dept_ids),
-                Assignment.is_current.is_(True) & (Assignment.officer_id == user.id),
-                Grievance.official_department_id.in_(dept_ids),
+        if is_dept_admin(user) and dept_ids:
+            stmt = stmt.where(
+                or_(
+                    Grievance.official_department_id.in_(dept_ids),
+                    Grievance.id.in_(
+                        select(Assignment.grievance_id).where(
+                            Assignment.is_current.is_(True),
+                            Assignment.department_id.in_(dept_ids),
+                        )
+                    ),
+                )
             )
-        )
+        else:
+            stmt = stmt.where(
+                or_(
+                    Grievance.id.in_(
+                        select(Assignment.grievance_id).where(
+                            Assignment.is_current.is_(True),
+                            Assignment.officer_id == user.id,
+                        )
+                    ),
+                    Grievance.id.in_(
+                        select(Assignment.grievance_id).where(
+                            Assignment.is_current.is_(True),
+                            Assignment.department_id.in_(dept_ids),
+                        )
+                    ),
+                )
+            )
     if status:
         stmt = stmt.where(Grievance.status == status)
     if priority:
@@ -188,13 +213,18 @@ async def run_analysis(db: AsyncSession, user: AuthUser, grievance_id: UUID, for
         created = existing.created_at
         if created and (datetime.now(timezone.utc) - created).total_seconds() < 60:
             return existing
-    result = analyze_complaint(g.description, g.location_text, g.ward_or_locality)
+    pipeline = await run_analysis_pipeline(g.description, g.location_text, g.ward_or_locality)
+    result = pipeline.analysis
+    provenance = pipeline.provenance
     dept_id = None
     if result.suggested_department_code:
         dep = await db.execute(select(Department).where(Department.code == result.suggested_department_code))
         department = dep.scalar_one_or_none()
         dept_id = department.id if department else None
     version = (existing.version + 1) if existing else 1
+    ai_source = AISource.llm if provenance.source == "llm" else AISource.rules
+    if provenance.source == "hybrid":
+        ai_source = AISource.llm
     if result.missing_fields and normalize_status(GrievanceStatus(g.status)) == GrievanceStatus.submitted:
         g.status = GrievanceStatus.needs_information
         await add_event(
@@ -218,7 +248,7 @@ async def run_analysis(db: AsyncSession, user: AuthUser, grievance_id: UUID, for
     analysis = AIAnalysis(
         grievance_id=g.id,
         version=version,
-        source=AISource.rules,
+        source=ai_source,
         summary=result.summary,
         extracted_entities=result.extracted_entities,
         suggested_category=result.suggested_category_code,
@@ -229,6 +259,9 @@ async def run_analysis(db: AsyncSession, user: AuthUser, grievance_id: UUID, for
         requires_human_review=result.requires_human_review,
         explanation=result.explanation,
         follow_up_questions=result.follow_up_questions,
+        detected_language=provenance.detected_language,
+        provider_name=provenance.provider_name,
+        provider_model=provenance.provider_model,
     )
     g.urgency_score = float(result.urgency_score)
     g.requires_human_review = result.requires_human_review
@@ -521,3 +554,79 @@ def grievance_to_detail(g: Grievance, analysis: AIAnalysis | None) -> dict:
         "attachments": [],
         "latest_analysis": latest,
     }
+
+
+async def reopen_grievance(db: AsyncSession, user: AuthUser, grievance_id: UUID, reason: str) -> Grievance:
+    settings = get_settings()
+    g = await get_grievance(db, grievance_id)
+    current = normalize_status(GrievanceStatus(g.status))
+    if current not in {GrievanceStatus.resolved, GrievanceStatus.closed}:
+        raise validation_error("Only resolved or closed grievances can be reopened")
+    if is_citizen(user):
+        if g.citizen_id != user.id:
+            raise forbidden("Citizens may reopen only their own grievances")
+        if g.resolved_at:
+            delta = datetime.now(timezone.utc) - (
+                g.resolved_at.replace(tzinfo=timezone.utc)
+                if g.resolved_at.tzinfo is None
+                else g.resolved_at.astimezone(timezone.utc)
+            )
+            if delta.days > settings.reopen_window_days:
+                raise validation_error(
+                    f"Reopen window of {settings.reopen_window_days} days has passed; contact support."
+                )
+    elif not (can_transition(user) and await can_read_grievance(db, user, g)):
+        raise forbidden("Not authorized to reopen this grievance")
+    validate_transition(current, GrievanceStatus.reopened)
+    prev = g.status
+    g.status = GrievanceStatus.reopened
+    g.reopened_count = (getattr(g, "reopened_count", 0) or 0) + 1
+    await add_event(
+        db,
+        g,
+        event_type=GrievanceEventType.status_change,
+        actor_id=user.id,
+        from_status=prev,
+        to_status=GrievanceStatus.reopened,
+        remark=reason,
+        metadata={"is_public": True, "public_message": "Grievance reopened for review."},
+    )
+    await log_action(
+        db,
+        actor_id=user.id,
+        action="grievance.reopen",
+        resource_type="grievance",
+        resource_id=g.id,
+        metadata={"reason": reason[:500]},
+    )
+    await notify_user(
+        db,
+        user_id=g.citizen_id,
+        type_="reopened",
+        title="Grievance reopened",
+        body=f"{g.reference_id} was reopened for further review.",
+        grievance_id=g.id,
+        dedupe_key=f"reopen:{g.id}:{g.reopened_count}",
+    )
+    return g
+
+
+async def run_image_analysis(db: AsyncSession, user: AuthUser, grievance_id: UUID, attachment_id: UUID):
+    from app.models.entities import Attachment
+
+    g = await get_grievance(db, grievance_id)
+    await require_grievance_read(db, user, g)
+    att = await db.get(Attachment, attachment_id)
+    if not att or att.grievance_id != g.id:
+        raise not_found("Attachment not found")
+    result = await analyze_grievance_image(att.storage_path, att.content_type)
+    att.image_analysis = {
+        "status": result.status,
+        "suggested_category_code": result.suggested_category_code,
+        "visual_description": result.visual_description,
+        "ocr_text": result.ocr_text,
+        "confidence": result.confidence,
+        "requires_human_review": result.requires_human_review,
+        "message": result.message,
+    }
+    return att
