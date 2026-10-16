@@ -5,6 +5,7 @@
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 
 let client: SupabaseClient | null = null;
+let memoryToken: string | null = null;
 
 export function getSupabase(): SupabaseClient {
   if (client) return client;
@@ -17,14 +18,23 @@ export function getSupabase(): SupabaseClient {
   return client;
 }
 
+export function rememberSession(session: Session | null) {
+  memoryToken = session?.access_token ?? null;
+}
+
 export async function getAccessToken(): Promise<string | null> {
+  if (memoryToken) return memoryToken;
   const supabase = getSupabase();
   const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  rememberSession(data.session);
+  return memoryToken;
 }
 
 export function onAuthStateChange(cb: (session: Session | null) => void) {
-  return getSupabase().auth.onAuthStateChange((_event, session) => cb(session));
+  return getSupabase().auth.onAuthStateChange((_event, session) => {
+    rememberSession(session);
+    cb(session);
+  });
 }
 
 export async function signInWithPassword(email: string, password: string) {

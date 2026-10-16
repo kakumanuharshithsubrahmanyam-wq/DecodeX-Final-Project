@@ -11,7 +11,7 @@ import {
 import type { Session } from '@supabase/supabase-js';
 import { api } from '@/lib/api-client';
 import type { MeProfile } from '@/lib/types';
-import { getAccessToken, getSupabase, onAuthStateChange } from '@/lib/auth';
+import { getAccessToken, getSupabase, onAuthStateChange, rememberSession } from '@/lib/auth';
 import { canUseLiveApi, isExplicitDemoMode, isSupabaseConfigured } from '@/lib/config';
 import { mapApiRoleToWorkspace, normalizeApiRole, type WorkspaceKind } from '@/auth/roles';
 
@@ -63,14 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const reqId = ++profileReq.current;
-    setProfileStatus('loading');
+    setProfileStatus((s) => (s === 'ready' ? s : 'loading'));
     try {
-      let token: string | null = null;
-      for (let i = 0; i < 8 && reqId === profileReq.current; i += 1) {
-        token = await getAccessToken();
-        if (token) break;
-        await new Promise((r) => setTimeout(r, 150));
-      }
+      rememberSession(session);
+      const token = session?.access_token ?? (await getAccessToken());
       if (!token) {
         if (reqId === profileReq.current) {
           setProfile(null);
@@ -110,11 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const supabase = getSupabase();
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+      rememberSession(data.session);
+      setSession((prev) => (prev?.access_token === data.session?.access_token ? prev : data.session));
       setStatus(data.session ? 'authenticated' : 'guest');
     });
     const sub = onAuthStateChange((s) => {
-      setSession(s);
+      rememberSession(s);
+      setSession((prev) => (prev?.access_token === s?.access_token ? prev : s));
       setStatus(s ? 'authenticated' : 'guest');
     });
     return () => sub.data.subscription.unsubscribe();
