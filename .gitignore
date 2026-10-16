@@ -1,0 +1,71 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+credentials.json
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.egg-info/
+dist/
+build/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# Build outputs
+dist/
+out/
+.next/
+
+# IDE and OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs and temp
+*.log
+tmp/
+temp/
+
+# Local databases and uploads
+*.sqlite
+*.sqlite3
+backend/uploads/
+backend/data/local/
+storage/local/
+
+# ML / large artifacts
+models/checkpoints/
+*.pt
+*.onnx
+*.bin
+datasets/generated/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
