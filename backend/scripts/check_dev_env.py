@@ -13,11 +13,11 @@ FRONTEND_ENV = ROOT / "frontend" / ".env.local"
 BACKEND_KEYS = [
     "DATABASE_URL",
     "SUPABASE_URL",
-    "SUPABASE_JWT_SECRET",
     "SUPABASE_SERVICE_ROLE_KEY",
     "JWT_ISSUER",
     "JWT_AUDIENCE",
 ]
+BACKEND_OPTIONAL_JWT_SECRET = "SUPABASE_JWT_SECRET"
 
 FRONTEND_KEYS = [
     "VITE_API_BASE_URL",
@@ -75,6 +75,16 @@ def main() -> int:
     missing = []
     missing += check_keys("backend/.env", backend, BACKEND_KEYS)
     missing += check_keys("frontend/.env.local", frontend, FRONTEND_KEYS)
+
+    supabase_url = backend.get("SUPABASE_URL") or ""
+    jwt_secret = backend.get(BACKEND_OPTIONAL_JWT_SECRET) or os.getenv(BACKEND_OPTIONAL_JWT_SECRET, "")
+    if supabase_url and not is_placeholder(supabase_url):
+        if jwt_secret and not is_placeholder(jwt_secret):
+            print("backend/.env: JWT — HS256 secret present")
+        else:
+            print("backend/.env: JWT — using JWKS from SUPABASE_URL (no legacy secret required)")
+    elif is_placeholder(jwt_secret):
+        missing.append(BACKEND_OPTIONAL_JWT_SECRET)
 
     app_env = (backend.get("APP_ENV") or os.getenv("APP_ENV", "development")).lower()
     bypass = (backend.get("AUTH_DEV_BYPASS") or os.getenv("AUTH_DEV_BYPASS", "")).lower()

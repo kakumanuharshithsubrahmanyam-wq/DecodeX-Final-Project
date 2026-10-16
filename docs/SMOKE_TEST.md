@@ -61,11 +61,11 @@ Record results in your run log; do not claim live verification unless each step 
 | Area | Result |
 |------|--------|
 | Supabase `rtgs-dev` project | **PASS** — ref `fsnqpcomhtseoffwgfub` (migrations + seed + private bucket) |
-| Local `backend/.env` | **BLOCKED** — run `backend/scripts/bootstrap_local_env.sh` |
+| Local `backend/.env` | **BLOCKED** — `.env.rtgs` + `bootstrap_from_env_rtgs.sh` |
 | Live Auth / Postgres / Storage | **NOT TESTED** |
-| Playwright demo E2E | **3 tests** — `npm run test:e2e:demo` |
-| Render deploy | **BLOCKED** — `render login` required |
-| Vercel RTGS deploy | **NOT TESTED** — needs Supabase + API URLs |
+| Playwright demo E2E | **PASS** — `npm run test:e2e:demo` (3) |
+| Render deploy | **BLOCKED** — CLI logged in; no git remote; create `rtgs-api` after secrets |
+| Vercel RTGS deploy | **BLOCKED** — needs Render API URL + env bootstrap |
 | Production deploy | **Not performed** |
 
 ## Phase 7 status (this repo checkout)

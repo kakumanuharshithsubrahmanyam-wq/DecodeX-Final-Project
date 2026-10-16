@@ -46,18 +46,19 @@ Backend signs URLs; bucket is not public.
 
 | Check | Result |
 |-------|--------|
-| `backend/.env` | **MISSING** — run `backend/scripts/bootstrap_local_env.sh` after exporting secrets |
+| `backend/.env` | **MISSING** — run `bash backend/scripts/bootstrap_from_env_rtgs.sh` after creating `.env.rtgs` |
 | `frontend/.env.local` | **MISSING** |
 | `check_dev_env.py` | **Exit 2** until env files exist |
+| `.env.rtgs` (gitignored) | **MISSING** — copy from `.env.rtgs.example` |
 
-**Required user exports (never commit):** `RTGS_DB_PASSWORD`, `RTGS_SERVICE_ROLE_KEY`, `RTGS_ANON_KEY`, optional `RTGS_JWT_SECRET`.  
-See `backend/scripts/bootstrap_local_env.sh`.
+**Required in `.env.rtgs` (never commit):** `RTGS_DB_PASSWORD`, `RTGS_SERVICE_ROLE_KEY`, `RTGS_ANON_KEY`, optional `RTGS_JWT_SECRET`.  
+See `backend/scripts/bootstrap_from_env_rtgs.sh` and [scripts/staging_deploy.md](../scripts/staging_deploy.md).
 
 ## Live tests vs mocks
 
 | Suite | Target | Result |
 |-------|--------|--------|
-| Backend pytest (default) | SQLite mocks | **PASS** (30 passed, 1 skipped) |
+| Backend pytest (default) | SQLite mocks | **PASS** (30 passed; live modules skipped) |
 | `test_live_workflow.py` | rtgs-dev Postgres + JWT | **NOT TESTED** — no `backend/.env` |
 | `test_live_supabase.py` | Legacy placeholder | **Skipped** |
 | Frontend vitest | Unit/render | **PASS** (12) |
@@ -68,27 +69,32 @@ See `backend/scripts/bootstrap_local_env.sh`.
 
 | Item | Result |
 |------|--------|
-| CLI authenticated | **BLOCKED** — run `render login` |
-| Staging service URL | **N/A** |
+| CLI authenticated | **PASS** (`render whoami` after device login) |
+| Workspace | **PASS** — `My Workspace` (`tea-db89jcgu01pc73f1ajn0`) |
+| Existing RTGS service | **NONE** — only unrelated `resumefit-ai-api` in workspace |
+| Git remote on repo | **MISSING** — Render deploy needs a connected remote + push or manual dashboard setup |
+| Staging service URL | **BLOCKED** — create `rtgs-api` after secrets + repo |
 | Health check | **NOT TESTED** |
 
 ## Vercel (staging)
 
 | Item | Result |
 |------|--------|
-| CLI account | `harshith-debug` — **confirm with user before RTGS deploy** |
-| Staging deploy | **NOT TESTED** — blocked on env + account confirmation |
+| CLI account | **PASS** — `harshith-debug` / `harshith-debugs-projects` |
+| RTGS Vercel project | **NONE** — reuse or create e.g. `rtgs-portal` |
+| Staging deploy | **BLOCKED** — needs `backend/.env` secrets flow + Render API URL |
 | Staging URL | **N/A** |
 
 ## Next steps (user)
 
-1. Export secrets and run `bash backend/scripts/bootstrap_local_env.sh`.
-2. `python backend/scripts/check_dev_env.py` → exit 0.
-3. `cd backend && uvicorn app.main:app --reload` and `RTGS_LIVE_TEST=1 pytest tests/test_live_workflow.py -q`.
-4. Supabase Auth: set Site URL / redirects when Vercel staging URL exists.
-5. `render login` → deploy `rtgs-api` staging with dashboard secrets.
-6. Confirm Vercel team → deploy `frontend/` with `VITE_API_BASE_URL` = Render staging URL.
-7. `PLAYWRIGHT_BASE_URL=<vercel-staging> E2E_LIVE=1 npm run test:e2e`.
+1. Copy `.env.rtgs.example` → `.env.rtgs` and fill Supabase dashboard values.
+2. `bash backend/scripts/bootstrap_from_env_rtgs.sh` → `python backend/scripts/check_dev_env.py` exit 0.
+3. Add a Git remote and push `main` **when you approve push**, or create `rtgs-api` manually in Render.
+4. `RTGS_LIVE_TEST=1 pytest tests/test_live_workflow.py -q` (after test citizen per ACCOUNT_PROVISIONING).
+5. Deploy Render `rtgs-api` — [scripts/staging_deploy.md](../scripts/staging_deploy.md).
+6. `vercel deploy` from `frontend/` with `VITE_API_BASE_URL` = Render staging URL.
+7. Supabase Auth Site URL + redirects = Vercel preview origin; update Render `CORS_ORIGINS`.
+8. `PLAYWRIGHT_BASE_URL=<vercel-staging> E2E_LIVE=1 npm run test:e2e`.
 
 ## Security
 

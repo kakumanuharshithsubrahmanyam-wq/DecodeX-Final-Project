@@ -71,8 +71,12 @@ Follow [docs/SMOKE_TEST.md](./SMOKE_TEST.md) after dev env is configured.
 Pre-flight (no secrets printed):
 
 ```bash
+cp .env.rtgs.example .env.rtgs   # fill from Supabase dashboard, never commit
+bash backend/scripts/bootstrap_from_env_rtgs.sh
 python backend/scripts/check_dev_env.py
 ```
+
+Full staging runbook: [scripts/staging_deploy.md](../scripts/staging_deploy.md).
 
 Phase 7 live vs mocked results: [docs/PHASE7_VERIFICATION.md](./PHASE7_VERIFICATION.md).  
 Phase 7.5 status: [docs/PHASE7_5_VERIFICATION.md](./PHASE7_5_VERIFICATION.md).
