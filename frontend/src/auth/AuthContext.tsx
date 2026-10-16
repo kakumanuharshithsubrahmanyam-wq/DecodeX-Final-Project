@@ -4,13 +4,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { api } from '@/lib/api-client';
 import type { MeProfile } from '@/lib/types';
-import { getSupabase, onAuthStateChange } from '@/lib/auth';
+import { getAccessToken, getSupabase, onAuthStateChange } from '@/lib/auth';
 import { canUseLiveApi, isExplicitDemoMode, isSupabaseConfigured } from '@/lib/config';
 import { mapApiRoleToWorkspace, normalizeApiRole, type WorkspaceKind } from '@/auth/roles';
 
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<MeProfile | null>(null);
   const supabaseReady = isSupabaseConfigured();
+  const profileReq = useRef(0);
 
   const refreshProfile = useCallback(async () => {
     if (!session && !isExplicitDemoMode()) {
@@ -60,9 +62,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileStatus('ready');
       return;
     }
+    const reqId = ++profileReq.current;
     setProfileStatus('loading');
     try {
+      let token: string | null = null;
+      for (let i = 0; i < 8 && reqId === profileReq.current; i += 1) {
+        token = await getAccessToken();
+        if (token) break;
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      if (!token) {
+        if (reqId === profileReq.current) {
+          setProfile(null);
+          setProfileStatus(session ? 'error' : 'idle');
+        }
+        return;
+      }
       const res = await api.me();
+      if (reqId !== profileReq.current) return;
       const role = normalizeApiRole(res.data.role);
       if (!role) {
         setProfile(null);
@@ -72,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(res.data);
       setProfileStatus('ready');
     } catch {
+      if (reqId !== profileReq.current) return;
       setProfile(null);
       setProfileStatus('error');
     }

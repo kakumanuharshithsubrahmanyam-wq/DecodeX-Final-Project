@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { LoadingScreen } from '@/pages/public/LoadingScreen';
 import { useAuth } from '@/auth/AuthContext';
@@ -11,7 +11,6 @@ import { signInWithPassword } from '@/lib/auth';
 export function LoginPage() {
   const { t } = useI18n();
   const auth = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const rawFrom = (location.state as { from?: string } | null)?.from;
   const home = workspaceHome(auth.workspace);
@@ -44,9 +43,7 @@ export function LoginPage() {
     setBusy(false);
     if (err) {
       setError(t('auth.errors.invalidCredentials'));
-      return;
     }
-    navigate(dest, { replace: true });
   };
 
   return (
