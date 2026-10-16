@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:demo": "playwright test e2e/demo-citizen.spec.ts",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
@@ -29,6 +31,7 @@
     "tailwindcss": "^4.1.8",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
-    "vitest": "^3.2.1"
+    "vitest": "^3.2.1",
+    "@playwright/test": "^1.52.0"
   }
 }

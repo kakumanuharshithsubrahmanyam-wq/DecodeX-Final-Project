@@ -1,6 +1,6 @@
-# RTGS Deployment Readiness (Phase 4)
+# RTGS Deployment Readiness
 
-**Not production-deployed in Phase 4.** This document describes how to deploy when ready.
+**Phase 7.5:** Integrated deploy not completed — Supabase `rtgs-dev` blocked by org free-project limit; Render CLI not logged in. See [PHASE7_5_VERIFICATION.md](./PHASE7_5_VERIFICATION.md).
 
 ## Prerequisites
 
@@ -29,8 +29,6 @@
 
 ## Frontend — Vercel
 
-**Blocked until Claude UI exists** (see [frontend/README.md](../frontend/README.md)).
-
 When ready:
 
 1. Import repo; set root directory to `frontend`.
@@ -55,7 +53,14 @@ supabase db push
 
 # Seed only on empty/dev DB
 psql "$DATABASE_URL" -f supabase/seed.sql
+
+# Private storage bucket
+psql "$DATABASE_URL" -f supabase/scripts/create_storage_bucket.sql
 ```
+
+Full runbook: [supabase/scripts/apply_all_migrations.md](../supabase/scripts/apply_all_migrations.md).
+
+If project creation fails with a **free-tier limit**, pause an unused active Supabase project or upgrade, then create **`rtgs-dev`**. Do not apply RTGS migrations to unrelated projects (e.g. TEAM-DDMM).
 
 Provision roles: [backend/docs/ACCOUNT_PROVISIONING.md](../backend/docs/ACCOUNT_PROVISIONING.md).
 
@@ -69,10 +74,32 @@ Pre-flight (no secrets printed):
 python backend/scripts/check_dev_env.py
 ```
 
-Phase 7 live vs mocked results: [docs/PHASE7_VERIFICATION.md](./PHASE7_VERIFICATION.md).
+Phase 7 live vs mocked results: [docs/PHASE7_VERIFICATION.md](./PHASE7_VERIFICATION.md).  
+Phase 7.5 status: [docs/PHASE7_5_VERIFICATION.md](./PHASE7_5_VERIFICATION.md).
+
+## Render CLI
+
+```bash
+render login
+render workspace set   # select your workspace
+# Create service from render.yaml or dashboard; set all sync:false secrets in dashboard
+```
+
+## Vercel CLI
+
+```bash
+cd frontend
+vercel link    # new project e.g. rtgs-portal
+vercel env add VITE_API_BASE_URL production
+vercel env add VITE_SUPABASE_URL production
+vercel env add VITE_SUPABASE_ANON_KEY production
+vercel --prod
+```
+
+After deploy, set Supabase Auth **Site URL** and **Redirect URLs** to the Vercel domain; set Render `CORS_ORIGINS` to the same origin.
 
 ## CI
 
-GitHub Actions runs backend pytest on push/PR (SQLite mocks). Live Supabase tests are manual (`RTGS_LIVE_TEST=1 pytest -m live` when `backend/.env` points at RTGS **dev** Postgres only).
+GitHub Actions runs backend pytest and frontend vitest/build on push/PR (SQLite mocks). Optional local browser tests: `cd frontend && npm run test:e2e:demo` (demo mode, not live Supabase). Live tests: `RTGS_LIVE_TEST=1 pytest -m live`, `E2E_LIVE=1 npm run test:e2e`.
 
-**Production was not deployed in Phase 7.**
+**Production was not deployed in Phase 7.5.**

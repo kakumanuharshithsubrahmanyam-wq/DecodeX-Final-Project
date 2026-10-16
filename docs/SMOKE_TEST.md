@@ -10,7 +10,16 @@ python backend/scripts/check_dev_env.py
 
 Reports whether `backend/.env` and `frontend/.env.local` exist and required keys are set (values are never printed). Exit code `0` means configured; `2` means live E2E is blocked.
 
-Full Phase 7 matrix (live vs mocked): [PHASE7_VERIFICATION.md](PHASE7_VERIFICATION.md).
+Full Phase 7 matrix (live vs mocked): [PHASE7_VERIFICATION.md](PHASE7_VERIFICATION.md).  
+Phase 7.5 deployment/integration: [PHASE7_5_VERIFICATION.md](PHASE7_5_VERIFICATION.md).
+
+## Browser E2E (demo — not live Supabase)
+
+```bash
+cd frontend && npm run test:e2e:demo
+```
+
+Uses Vite dev server with `VITE_DEMO_MODE=true`. Live browser tests: `E2E_LIVE=1 npm run test:e2e` after configuring Supabase test accounts.
 
 ## Automated (API + dev bypass — not live Supabase Auth)
 
@@ -46,6 +55,17 @@ Exit code 0 only if health + create grievance succeed against configured Postgre
    - Community moderator (if provisioned) cannot access private grievance APIs.
 
 Record results in your run log; do not claim live verification unless each step was executed against dev.
+
+## Phase 7.5 status (this repo checkout)
+
+| Area | Result |
+|------|--------|
+| Supabase `rtgs-dev` project | **BLOCKED** — org free active project limit (2/2) |
+| Live Auth / Postgres / Storage | **NOT TESTED** |
+| Playwright demo E2E | **3 tests** — `npm run test:e2e:demo` |
+| Render deploy | **BLOCKED** — `render login` required |
+| Vercel RTGS deploy | **NOT TESTED** — needs Supabase + API URLs |
+| Production deploy | **Not performed** |
 
 ## Phase 7 status (this repo checkout)
 

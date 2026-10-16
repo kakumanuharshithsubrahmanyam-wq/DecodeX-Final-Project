@@ -33,6 +33,10 @@ Legacy `administrator` is treated as `platform_administrator` in the API.
 
 Assign `community_moderator` only. This role must **not** grant access to private grievance rows (enforced in FastAPI and future RLS hardening).
 
+## Phase 7.5 — dev Supabase project
+
+Create a dedicated **`rtgs-dev`** Supabase project (not TEAM-DDMM or other apps). If creation fails with a free-tier limit, pause an unused active project in the Supabase dashboard first. Apply migrations per [supabase/scripts/apply_all_migrations.md](../../supabase/scripts/apply_all_migrations.md).
+
 ## Local development / tests
 
 Set in `backend/.env` (never in production):
