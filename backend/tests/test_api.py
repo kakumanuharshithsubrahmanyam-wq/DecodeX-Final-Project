@@ -162,3 +162,42 @@ async def test_analytics_admin(client, monkeypatch):
     r = await ac.get("/api/v1/analytics/overview", headers={"Authorization": "Bearer admin"})
     assert r.status_code == 200
     assert "total_grievances" in r.json()["data"]
+
+
+@pytest.mark.asyncio
+async def test_community_moderator_cannot_read_grievance(client, monkeypatch):
+    ac, seed = client
+    payload = {
+        "description": "Garbage pile near park untreated for many days in residential colony area.",
+        "location_text": "Park colony",
+    }
+    create = await ac.post("/api/v1/grievances", json=payload, headers={"Authorization": "Bearer x"})
+    gid = create.json()["data"]["id"]
+    monkeypatch.setenv("AUTH_DEV_USER_ID", str(seed["moderator_id"]))
+    get_settings.cache_clear()
+    r = await ac.get(f"/api/v1/grievances/{gid}", headers={"Authorization": "Bearer mod"})
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_me_community_moderator_permissions(client, monkeypatch):
+    ac, seed = client
+    monkeypatch.setenv("AUTH_DEV_USER_ID", str(seed["moderator_id"]))
+    get_settings.cache_clear()
+    r = await ac.get("/api/v1/me", headers={"Authorization": "Bearer mod"})
+    assert r.status_code == 200
+    perms = r.json()["data"]["permissions"]
+    assert "community:moderate" in perms
+    assert "grievance:read_own" not in perms
+    assert "grievance:create" not in perms
+
+
+@pytest.mark.asyncio
+async def test_unauthorized_without_bypass(client, monkeypatch):
+    ac, seed = client
+    monkeypatch.setenv("AUTH_DEV_BYPASS", "false")
+    monkeypatch.delenv("SUPABASE_JWT_SECRET", raising=False)
+    get_settings.cache_clear()
+    r = await ac.get("/api/v1/me", headers={"Authorization": "Bearer not-a-real-jwt"})
+    assert r.status_code == 401
+    get_settings.cache_clear()

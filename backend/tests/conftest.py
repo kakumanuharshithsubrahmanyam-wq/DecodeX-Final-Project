@@ -56,6 +56,7 @@ async def seed_data(db_session: AsyncSession):
     citizen_id = uuid.uuid4()
     officer_id = uuid.uuid4()
     admin_id = uuid.uuid4()
+    moderator_id = uuid.uuid4()
     other_citizen = uuid.uuid4()
     db_session.add(
         Profile(id=citizen_id, email="citizen@test.com", role=UserRole.citizen, full_name="Citizen")
@@ -73,6 +74,14 @@ async def seed_data(db_session: AsyncSession):
     )
     db_session.add(
         Profile(id=other_citizen, email="other@test.com", role=UserRole.citizen, full_name="Other")
+    )
+    db_session.add(
+        Profile(
+            id=moderator_id,
+            email="mod@test.com",
+            role=UserRole.community_moderator,
+            full_name="Moderator",
+        )
     )
     san = Department(name="Sanitation", code="SAN", description="San")
     road = Department(name="Roads", code="ROAD", description="Roads")
@@ -92,6 +101,7 @@ async def seed_data(db_session: AsyncSession):
         "officer_id": officer_id,
         "admin_id": admin_id,
         "other_citizen": other_citizen,
+        "moderator_id": moderator_id,
         "san_id": san.id,
         "road_id": road.id,
     }

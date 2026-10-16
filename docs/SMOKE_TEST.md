@@ -2,13 +2,23 @@
 
 Run only against a **dedicated dev** Supabase project and dev/staging API. Do not use production citizen data.
 
+## Environment pre-check
+
+```bash
+python backend/scripts/check_dev_env.py
+```
+
+Reports whether `backend/.env` and `frontend/.env.local` exist and required keys are set (values are never printed). Exit code `0` means configured; `2` means live E2E is blocked.
+
+Full Phase 7 matrix (live vs mocked): [PHASE7_VERIFICATION.md](PHASE7_VERIFICATION.md).
+
 ## Automated (API + dev bypass — not live Supabase Auth)
 
 ```bash
 cd backend && source .venv/bin/activate && pytest -q
 ```
 
-This validates grievance flows with SQLite mocks (25+ tests). **This is not a live Supabase smoke test.**
+This validates grievance flows with SQLite mocks (30+ tests). **This is not a live Supabase smoke test.**
 
 ## Optional live script
 
@@ -37,6 +47,18 @@ Exit code 0 only if health + create grievance succeed against configured Postgre
 
 Record results in your run log; do not claim live verification unless each step was executed against dev.
 
+## Phase 7 status (this repo checkout)
+
+| Area | Result |
+|------|--------|
+| Dev Supabase project configured locally | **No** — `backend/.env` and `frontend/.env.local` absent |
+| Migrations applied to dev Postgres | **Not run** (no linked project in workspace) |
+| Live Auth / workflow / Storage E2E | **Blocked** — see [PHASE7_VERIFICATION.md](PHASE7_VERIFICATION.md) |
+| Mocked backend pytest | **30 passed**, 1 skipped (`test_live_supabase`) |
+| Frontend tests + build | **12 passed**; `npm run build` OK |
+| Browser automation E2E | **Not in repo** |
+| Production deploy | **Not performed** |
+
 ## Phase 6B status (this repo checkout)
 
 | Area | Result |
@@ -44,7 +66,7 @@ Record results in your run log; do not claim live verification unless each step 
 | Design archive `rtgs-frontend-new.zip` | **Present** — extracted to `design/reference/rtgs/`; see [PHASE6_DESIGN_ARCHIVE.md](PHASE6_DESIGN_ARCHIVE.md) |
 | Frontend tests | 12 passed (roles, i18n parity, locale switch, portal workflow render) |
 | Frontend build | `npm run build` |
-| Backend pytest | 27 passed, 1 skipped |
+| Backend pytest | 30 passed, 1 skipped (Phase 7) |
 | Live Supabase Auth / Postgres / Storage | **Pending** — no committed `.env`; use dev credentials per setup below |
 
 ## Phase 5 status (this repo checkout)

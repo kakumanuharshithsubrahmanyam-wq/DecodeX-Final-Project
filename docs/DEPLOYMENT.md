@@ -63,6 +63,16 @@ Provision roles: [backend/docs/ACCOUNT_PROVISIONING.md](../backend/docs/ACCOUNT_
 
 Follow [docs/SMOKE_TEST.md](./SMOKE_TEST.md) after dev env is configured.
 
+Pre-flight (no secrets printed):
+
+```bash
+python backend/scripts/check_dev_env.py
+```
+
+Phase 7 live vs mocked results: [docs/PHASE7_VERIFICATION.md](./PHASE7_VERIFICATION.md).
+
 ## CI
 
-GitHub Actions runs backend pytest on push/PR (SQLite mocks). Live Supabase tests are manual (`pytest -m live` when configured).
+GitHub Actions runs backend pytest on push/PR (SQLite mocks). Live Supabase tests are manual (`RTGS_LIVE_TEST=1 pytest -m live` when `backend/.env` points at RTGS **dev** Postgres only).
+
+**Production was not deployed in Phase 7.**
