@@ -463,3 +463,10 @@ Role: platform admin.
 |---------|------|-------|
 | 0.1.0 | 2026-10-16 | Initial contract |
 | 1.1.0 | 2026-10-16 | Platform redesign: lifecycle, roles, SLA, feedback, phased endpoints |
+| 1.1.1 | 2026-10-16 | Phase 2: FastAPI implementation notes; `GET /health` includes `database` field |
+
+### Phase 2 implementation status
+
+**Implemented (MVP):** `/health`, `/me`, `/me/notification-preferences`, `/categories`, grievance CRUD/track/analyze/transitions/assignments/escalate/feedback, `/departments` (basic), `/notifications`, `/analytics/overview`, `/analytics/audit-logs`.
+
+**Not implemented yet:** attachments, chat, integrations, community, municipal feeds, `/analytics/trends`, category admin POST/PATCH, `/sla-policies` admin, `/notifications/read-all`, `/grievances/{id}/reopen`.

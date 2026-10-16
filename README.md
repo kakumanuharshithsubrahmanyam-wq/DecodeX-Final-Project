@@ -2,7 +2,7 @@
 
 Citizen-centric digital urban governance: AI-assisted grievance redressal, SLA-aware operations, and staged multichannel intake (web first).
 
-**Phase 1 (redesign) status:** Architecture, data model, API contract, and SQL migrations documented. **No runnable app yet.** Phase 2 implements FastAPI and applies migrations to a dev Supabase project.
+**Phase 2 status:** FastAPI backend MVP implemented with rules-based AI, tests, and Supabase-ready migrations. Frontend remains separate (Claude UI).
 
 RTGS is **not** presented as an official government service unless your deployer explicitly configures and authorizes that relationship.
 
@@ -11,46 +11,87 @@ RTGS is **not** presented as an official government service unless your deployer
 ```
 .
 ├── frontend/                 # Claude UI (React + Vite)
-├── backend/                  # FastAPI + AI (Phase 2+)
+├── backend/                  # FastAPI application
 ├── supabase/
 │   ├── migrations/           # Apply in filename order
 │   └── seed.sql
 ├── docs/
-│   ├── API_CONTRACT.md
-│   ├── FRONTEND_INTEGRATION.md
-│   ├── FEATURE_MATRIX.md
-│   ├── DATA_MODEL.md
-│   └── INTEGRATIONS.md
-├── PROJECT_SPEC.md
-├── ARCHITECTURE.md
-└── DEVELOPMENT_PLAN.md
+└── PROJECT_SPEC.md, ARCHITECTURE.md, DEVELOPMENT_PLAN.md
 ```
 
-## Migrations
+## Migrations (Supabase dev)
+
+Apply in order:
 
 1. `20251016120000_initial_schema.sql`
 2. `20251016130000_platform_redesign_extensions.sql`
+3. `20251016140000_rls_role_helpers.sql`
 
-Do not edit applied migrations; add new files for schema changes.
+Using Supabase CLI (recommended):
 
-## Documentation index
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+psql "$DATABASE_URL" -f supabase/seed.sql
+```
+
+Or run each SQL file in the Supabase SQL editor on a **dev** project only.
+
+**Live Supabase:** not verified in CI; configure `backend/.env` with your dev project credentials to test end-to-end.
+
+## Backend setup (Python 3.9+; 3.11+ recommended)
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env: DATABASE_URL (Supabase pooler), SUPABASE_JWT_SECRET, etc.
+uvicorn app.main:app --reload --port 8000
+```
+
+- API docs: http://localhost:8000/docs  
+- OpenAPI JSON: http://localhost:8000/openapi.json  
+- Health: http://localhost:8000/api/v1/health  
+
+### Local dev without Supabase JWT
+
+For local testing only (never production):
+
+```env
+AUTH_DEV_BYPASS=true
+AUTH_DEV_USER_ID=<uuid from profiles table>
+DATABASE_URL=sqlite+aiosqlite:///./rtgs_dev.db
+```
+
+Create tables with migrations against Postgres, or use pytest (in-memory SQLite fixtures).
+
+### Account provisioning
+
+See [backend/docs/ACCOUNT_PROVISIONING.md](backend/docs/ACCOUNT_PROVISIONING.md).
+
+## Tests
+
+```bash
+cd backend
+source .venv/bin/activate
+pytest
+```
+
+**Last run:** 15 passed (SQLite in-memory fixtures; no live Supabase).
+
+## Frontend setup (Phase 4)
+
+Copy `frontend/.env.example` → `frontend/.env.local` and set `VITE_API_BASE_URL=http://localhost:8000`.
+
+## Documentation
 
 | Document | Purpose |
 |----------|---------|
-| [PROJECT_SPEC.md](./PROJECT_SPEC.md) | Vision, modules A–H, MVP vs staged |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Components, AI pipeline, security |
-| [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) | Four-phase plan |
-| [docs/FEATURE_MATRIX.md](./docs/FEATURE_MATRIX.md) | Features, roles, acceptance criteria |
-| [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) | Entities, lifecycle, RLS plan |
-| [docs/API_CONTRACT.md](./docs/API_CONTRACT.md) | REST contract (MVP/Next/Future tags) |
-| [docs/INTEGRATIONS.md](./docs/INTEGRATIONS.md) | WhatsApp, notifications, AI providers |
-
-## Setup (Phase 2+)
-
-1. Copy `frontend/.env.example` → `frontend/.env.local`
-2. Copy `backend/.env.example` → `backend/.env`
-3. Apply Supabase migrations; run `seed.sql` on dev only
-4. Start backend and frontend (instructions added in Phase 2)
+| [docs/API_CONTRACT.md](docs/API_CONTRACT.md) | REST contract + implementation status |
+| [docs/FRONTEND_INTEGRATION.md](docs/FRONTEND_INTEGRATION.md) | Claude UI integration |
+| [backend/docs/ACCOUNT_PROVISIONING.md](backend/docs/ACCOUNT_PROVISIONING.md) | Roles and officers |
 
 ## Workflow
 
@@ -59,7 +100,7 @@ Do not edit applied migrations; add new files for schema changes.
 
 ## Git history
 
-Initial foundation commit `9903103` preserved; redesign commits follow on `main`.
+`9903103` → Phase 1 foundation · `1ef5695` → Phase 1 redesign · Phase 2 backend commits follow on `main`.
 
 ## License
 
