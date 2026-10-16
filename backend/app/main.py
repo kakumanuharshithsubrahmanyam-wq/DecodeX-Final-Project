@@ -21,6 +21,7 @@ app.add_exception_handler(AppError, app_error_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=r"https://rtgs-portal-[a-z0-9]+-harshith-debugs-projects\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -95,6 +95,8 @@ class MockStorageClient(StorageClient):
 
 def get_storage_client() -> StorageClient:
     settings = get_settings()
+    if settings.app_env == "test":
+        return MockStorageClient()
     if settings.supabase_url and settings.supabase_service_role_key:
         return SupabaseStorageClient(
             settings.supabase_url,

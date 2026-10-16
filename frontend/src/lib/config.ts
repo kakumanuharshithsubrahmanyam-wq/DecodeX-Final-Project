@@ -11,11 +11,13 @@ export function isApiConfigured(): boolean {
 
 /** Explicit demo dataset — never mixed with live API grievances */
 export function isExplicitDemoMode(): boolean {
-  if (import.meta.env.PROD && import.meta.env.VITE_DEMO_MODE === 'true') {
-    console.error('VITE_DEMO_MODE must not be enabled in production builds.');
+  if (import.meta.env.VITE_DEMO_MODE !== 'true') return false;
+  const appEnv = (import.meta.env.VITE_APP_ENV as string | undefined)?.toLowerCase();
+  if (appEnv === 'production') {
+    console.error('VITE_DEMO_MODE must not be enabled when VITE_APP_ENV=production.');
     return false;
   }
-  return import.meta.env.VITE_DEMO_MODE === 'true';
+  return true;
 }
 
 export function canUseLiveApi(sessionPresent: boolean): boolean {

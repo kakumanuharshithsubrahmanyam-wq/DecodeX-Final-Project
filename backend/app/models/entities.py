@@ -18,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects.postgresql import ENUM as PgENUM
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -37,6 +38,17 @@ from app.models.enums import (
 JsonType = JSON().with_variant(JSONB(), "postgresql")
 
 
+def pg_enum(enum_cls, name: str, length: int = 32):
+    """Postgres native enum + SQLite string (create_type=False: types already exist in migrations)."""
+    native = PgENUM(
+        enum_cls,
+        name=name,
+        create_type=False,
+        values_callable=lambda obj: [member.value for member in obj],
+    )
+    return native.with_variant(String(length), "sqlite")
+
+
 class Profile(Base):
     __tablename__ = "profiles"
 
@@ -44,7 +56,7 @@ class Profile(Base):
     email: Mapped[str] = mapped_column(Text, nullable=False)
     full_name: Mapped[Optional[str]] = mapped_column(Text)
     phone: Mapped[Optional[str]] = mapped_column(Text)
-    role: Mapped[UserRole] = mapped_column(String(32), default=UserRole.citizen)
+    role: Mapped[UserRole] = mapped_column(pg_enum(UserRole, "user_role"), default=UserRole.citizen)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -97,13 +109,17 @@ class Grievance(Base):
     location_text: Mapped[str] = mapped_column(Text, nullable=False)
     latitude: Mapped[Optional[float]] = mapped_column(Float)
     longitude: Mapped[Optional[float]] = mapped_column(Float)
-    status: Mapped[GrievanceStatus] = mapped_column(String(32), default=GrievanceStatus.submitted)
+    status: Mapped[GrievanceStatus] = mapped_column(
+        pg_enum(GrievanceStatus, "grievance_status"), default=GrievanceStatus.submitted
+    )
     official_category: Mapped[Optional[str]] = mapped_column(Text)
     official_department_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("departments.id"))
-    official_priority: Mapped[Optional[PriorityLevel]] = mapped_column(String(16))
+    official_priority: Mapped[Optional[PriorityLevel]] = mapped_column(pg_enum(PriorityLevel, "priority_level", 16))
     category_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("grievance_categories.id"))
     subcategory_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("grievance_categories.id"))
-    intake_channel: Mapped[IntakeChannel] = mapped_column(String(16), default=IntakeChannel.web)
+    intake_channel: Mapped[IntakeChannel] = mapped_column(
+        pg_enum(IntakeChannel, "intake_channel", 16), default=IntakeChannel.web
+    )
     ward_or_locality: Mapped[Optional[str]] = mapped_column(Text)
     reopened_count: Mapped[int] = mapped_column(Integer, default=0)
     urgency_score: Mapped[Optional[float]] = mapped_column(Numeric(5, 4))
@@ -138,9 +154,9 @@ class GrievanceEvent(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     grievance_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("grievances.id"))
-    event_type: Mapped[GrievanceEventType] = mapped_column(String(32))
-    from_status: Mapped[Optional[GrievanceStatus]] = mapped_column(String(32))
-    to_status: Mapped[Optional[GrievanceStatus]] = mapped_column(String(32))
+    event_type: Mapped[GrievanceEventType] = mapped_column(pg_enum(GrievanceEventType, "grievance_event_type"))
+    from_status: Mapped[Optional[GrievanceStatus]] = mapped_column(pg_enum(GrievanceStatus, "grievance_status"))
+    to_status: Mapped[Optional[GrievanceStatus]] = mapped_column(pg_enum(GrievanceStatus, "grievance_status"))
     remark: Mapped[Optional[str]] = mapped_column(Text)
     metadata_json: Mapped[dict] = mapped_column("metadata", JsonType, default=dict)
     actor_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id"))
@@ -156,13 +172,15 @@ class AIAnalysis(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     grievance_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("grievances.id"))
     version: Mapped[int] = mapped_column(Integer, nullable=False)
-    source: Mapped[AISource] = mapped_column(String(16), default=AISource.rules)
+    source: Mapped[AISource] = mapped_column(pg_enum(AISource, "ai_source", 16), default=AISource.rules)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     extracted_entities: Mapped[dict] = mapped_column(JsonType, default=dict)
     suggested_category: Mapped[Optional[str]] = mapped_column(Text)
     suggested_department_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("departments.id"))
     urgency_score: Mapped[float] = mapped_column(Numeric(5, 4), default=0)
-    urgency_label: Mapped[PriorityLevel] = mapped_column(String(16), default=PriorityLevel.low)
+    urgency_label: Mapped[PriorityLevel] = mapped_column(
+        pg_enum(PriorityLevel, "priority_level", 16), default=PriorityLevel.low
+    )
     confidence: Mapped[float] = mapped_column(Numeric(5, 4), default=0)
     requires_human_review: Mapped[bool] = mapped_column(Boolean, default=True)
     explanation: Mapped[Optional[str]] = mapped_column(Text)
@@ -196,7 +214,7 @@ class SLAPolicy(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(Text, nullable=False)
-    priority: Mapped[PriorityLevel] = mapped_column(String(16), nullable=False)
+    priority: Mapped[PriorityLevel] = mapped_column(pg_enum(PriorityLevel, "priority_level", 16), nullable=False)
     category_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("grievance_categories.id"))
     department_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("departments.id"))
     first_response_hours: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -245,7 +263,9 @@ class Notification(Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     grievance_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("grievances.id"))
-    channel: Mapped[NotificationChannel] = mapped_column(String(16), default=NotificationChannel.in_app)
+    channel: Mapped[NotificationChannel] = mapped_column(
+        pg_enum(NotificationChannel, "notification_channel", 16), default=NotificationChannel.in_app
+    )
     dedupe_key: Mapped[Optional[str]] = mapped_column(String(128))
     read_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

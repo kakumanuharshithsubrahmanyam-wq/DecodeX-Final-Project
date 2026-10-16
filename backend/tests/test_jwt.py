@@ -13,6 +13,7 @@ async def test_hs256_jwt_roundtrip(monkeypatch):
     get_settings.cache_clear()
     monkeypatch.setenv("SUPABASE_JWT_SECRET", secret)
     monkeypatch.setenv("JWT_AUDIENCE", "authenticated")
+    monkeypatch.setenv("JWT_ISSUER", "")
     monkeypatch.setenv("AUTH_DEV_BYPASS", "false")
     get_settings.cache_clear()
     reset_jwks_cache_for_tests()
