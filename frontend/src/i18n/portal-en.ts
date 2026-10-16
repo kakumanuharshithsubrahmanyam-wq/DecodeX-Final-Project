@@ -17,12 +17,14 @@ export const portalEn = {
     trackSignIn: 'Sign in to view your complaint details. Public reference tracking is not available yet.',
   },
   landing: {
+    pill: 'A smarter, faster, more responsive government',
     kicker: 'CITIZEN-CENTRIC GOVERNANCE',
-    heroTitle1: 'Your voice.',
-    heroTitle2: 'Your city.',
-    heroTitle3: 'Our responsibility.',
+    heroTitle1: 'Raise a Complaint,',
+    heroTitle2: 'Create a Better Community',
+    heroTitle3: '',
     heroDesc:
-      'Report civic issues, follow every update, and help make your city a better place — one complaint at a time.',
+      'Report civic issues in your area and get guidance to route them to the right department.',
+    heroDemoAi: 'Demo — AI guidance uses backend rules unless an LLM is configured.',
     fileBtn: 'File a complaint',
     trackBtn: 'Track a complaint',
     trustTitle: 'Transparent by design',
@@ -237,6 +239,20 @@ export const portalEn = {
     descRequired: 'Describe the issue',
     uploadFailed: 'Upload failed',
     submissionFailed: 'Submission failed',
+    uploadFormat: 'PNG, JPG, PDF or TXT · Up to 8 MB each · 5 files max',
+    localPreview: 'Local preview only',
+    reviewRulesNote: 'Rule-based demonstration only — not a real AI service.',
+    completenessDemoNote: 'Add details where possible to help the demo routing rules.',
+    reviewSubmitDescDemo: 'Check your report before saving it to the demo workspace.',
+    hazardDemoBody:
+      'If anyone is in immediate danger, contact the appropriate emergency service directly. This demo does not dispatch help.',
+    demoSubmitTitle: 'Demo submission only',
+    demoSubmitBody:
+      'This creates a local demonstration record. It is not sent to GHMC or any government department.',
+    asidePrivacyTitle: 'Local demo storage',
+    asidePrivacyBody:
+      'Details and attachments are not uploaded to a server. Only file names are stored in the grievance record.',
+    back: 'Back',
   },
   track: {
     eyebrow: 'TRACK COMPLAINT',
@@ -320,6 +336,11 @@ export const portalEn = {
     queueClearTitle: 'Queue clear',
     queueClearDesc: 'No cases currently need verification.',
     markEscalated: 'Mark for review',
+    confirmDeptLabel: 'Confirm department',
+    flagReasonCritical:
+      'Potential safety or public-health hazard; human review recommended.',
+    flagReasonLowConf: 'Low classification confidence; category may be ambiguous.',
+    flagReasonConfirm: 'Priority rule requires a human to confirm urgency.',
   },
   admin: {
     eyebrow: 'ADMINISTRATION',

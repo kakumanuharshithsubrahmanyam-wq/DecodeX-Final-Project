@@ -31,5 +31,7 @@ describe('i18n dictionaries', () => {
     expect(en.portal.landing.fileBtn).toBeTruthy();
     expect(te.portal.landing.fileBtn).toBeTruthy();
     expect(en.portal.landing.fileBtn).not.toEqual(te.portal.landing.fileBtn);
+    expect(en.portal.landing.pill).not.toEqual(te.portal.landing.pill);
+    expect(en.portal.landing.heroTitle2).not.toEqual(te.portal.landing.heroTitle2);
   });
 });

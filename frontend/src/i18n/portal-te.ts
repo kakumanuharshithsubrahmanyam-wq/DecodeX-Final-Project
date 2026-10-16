@@ -19,12 +19,13 @@ export const portalTe = {
     trackSignIn: 'మీ ఫిర్యాదు వివరాల కోసం సైన్ ఇన్ అవ్వండి. పబ్లిక్ ట్రాకింగ్ ఇంకా లేదు.',
   },
   landing: {
+    pill: 'తెలివైన, వేగవంతమైన, మరింత స్పందించే ప్రభుత్వం',
     kicker: 'పౌర-కేంద్రీకృత పరిపాలన',
-    heroTitle1: 'మీ స్వరం.',
-    heroTitle2: 'మీ నగరం.',
-    heroTitle3: 'మన బాధ్యత.',
-    heroDesc:
-      'పౌర సమస్యలను నమోదు చేయండి, ప్రతి నవీకరణను అనుసరించండి — ఒక్కొక్క ఫిర్యాదుతో నగరాన్ని మెరుగుపరచండి.',
+    heroTitle1: 'ఫిర్యాదు చేయండి,',
+    heroTitle2: 'మెరుగైన సమాజాన్ని నిర్మించండి',
+    heroTitle3: '',
+    heroDesc: 'మీ ప్రాంతంలోని పౌర సమస్యలను నివేదించండి, సరైన శాఖకు మార్గదర్శకం పొందండి.',
+    heroDemoAi: 'డెమో — AI మార్గదర్శకం backend నియమాలను ఉపయోగిస్తుంది (LLM కాన్ఫిగర్ చేసినప్పుడు మాత్రమే LLM).',
     fileBtn: 'ఫిర్యాదు దాఖలు చేయండి',
     trackBtn: 'ఫిర్యాదు ట్రాక్ చేయండి',
     trustTitle: 'పారదర్శక డిజైన్',
@@ -239,6 +240,20 @@ export const portalTe = {
     descRequired: 'సమస్యను వివరించండి',
     uploadFailed: 'అప్‌లోడ్ విఫలమైంది',
     submissionFailed: 'సమర్పణ విఫలమైంది',
+    uploadFormat: 'PNG, JPG, PDF లేదా TXT · ప్రతి 8 MB · గరిష్ట 5 ఫైళ్లు',
+    localPreview: 'స్థానిక preview మాత్రమే',
+    reviewRulesNote: 'నియమ-ఆధారిత demo — నిజ AI సేవ కాదు.',
+    completenessDemoNote: 'డెమో రూటింగ్‌కు వీలైనంత వివరాలు జోడించండి.',
+    reviewSubmitDescDemo: 'డెమో workspace‌లో సేవ్ చేయే ముందు నివేదికను తనిఖీ చేయండి.',
+    hazardDemoBody:
+      'తక్షణ ప్రమాదం ఉంటే అత్యవసర సేవలను నేరుగా సంప్రదించండి. ఈ demo సహాయం పంపదు.',
+    demoSubmitTitle: 'డెమో సమర్పణ మాత్రమే',
+    demoSubmitBody:
+      'ఇది స్థానిక demo రికార్డ్‌ను సృష్టిస్తుంది. GHMC లేదా ప్రభుత్వ శాఖకు పంపబడదు.',
+    asidePrivacyTitle: 'స్థానిక demo నిల్వ',
+    asidePrivacyBody:
+      'వివరాలు/అటాచ్‌మెంట్‌లు సర్వర్‌కు అప్‌లోడ్ కావు. ఫైల్ పేర్లు మాత్రమే రికార్డ్‌లో ఉంటాయి.',
+    back: 'వెనక్కి',
   },
   track: {
     eyebrow: 'ట్రాక్',
@@ -322,6 +337,10 @@ export const portalTe = {
     queueClearTitle: 'క్యూ ఖాళీ',
     queueClearDesc: 'ప్రస్తుతం verification అవసరం లేదు.',
     markEscalated: 'సమీక్షకు గుర్తు',
+    confirmDeptLabel: 'శాఖ నిర్ధారించండి',
+    flagReasonCritical: 'భద్రత/ఆరోగ్య ప్రమాదం అవకాశం; మానవ సమీక్ష సిఫారసు.',
+    flagReasonLowConf: 'తక్కువ classification confidence; వర్గం ambiguous కావచ్చు.',
+    flagReasonConfirm: 'ప్రాధాన్యత నియమం urgency నిర్ధారణకు మానవుని అవసరం.',
   },
   admin: {
     eyebrow: 'నిర్వాహకత',

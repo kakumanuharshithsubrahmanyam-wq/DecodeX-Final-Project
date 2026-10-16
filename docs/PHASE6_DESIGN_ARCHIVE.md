@@ -1,27 +1,29 @@
 # Phase 6 design reference archive
 
-## Expected archive (not in workspace)
+## Design reference archive
 
-Phase 6 specifies a vanilla HTML/CSS/JS reference extracted as:
+- **Workspace paths:** `rtgs-frontend-new.zip` (repo root) and `frontend/rtgs-frontend-new.zip`
+- **Extracted reference:** `design/reference/rtgs/` (`index.html`, `styles.css`, `app.js`, `README.md`)
 
-- **Expected path:** `rtgs-frontend-new.zip` (from uploaded `rtgs-frontend(1).zip`)
-- **Expected contents:** `rtgs/index.html`, `rtgs/styles.css`, `rtgs/app.js`, `rtgs/README.md`
+**Inspected:** October 2026 — vanilla JS demo with LocalStorage (`rtgs1`), role picker login, keyword AI, EN/TE string table. **Not imported into React** (by design).
 
-**Status:** As of this phase, neither `rtgs-frontend-new.zip` nor `rtgs-frontend(1).zip` was present under the repository workspace. Archive-dependent pixel matching was **not** performed.
+## Visual patterns ported into React (Phase 6B)
 
-## What was done instead
+| Reference element | React implementation |
+|-------------------|----------------------|
+| Light blue page background (`#eef4fd`) | `frontend/src/styles.css` tokens `--bg`, hero gradient |
+| Primary civic blue buttons (`#1d5fd6` / `#1d63e8`) | `.btn-primary`, brand mark, nav primary items |
+| Landing pill + two-line hero headline | `portal.landing.pill`, `heroTitle1/2`, `Landing` in `RtgsPortal.tsx` |
+| Prominent File / Track / Help actions | Citizen nav order + hero CTAs |
+| Table header tint, pills, status badges | Existing table/badge components + CSS alignment |
+| Complaint wizard steps, review cards, officer queue layout | Retained React structure; copy wired to `portal.*` i18n |
 
-The existing React app (`frontend/src/RtgsPortal.tsx`, `frontend/src/styles.css`) already implements a **blue/white civic identity** (navy hero, `#4168cf` accents, card-based dashboards, complaint wizard, officer/admin surfaces). Phase 6:
+**Not ported (intentionally):** localStorage grievance DB, demo role selector login, reference `app.js` routing, simulated persistence, keyword-only AI as production behavior.
 
-- Reordered citizen navigation to foreground **File a complaint**, **Track a complaint**, and **Get help**.
-- Continued EN/TE localization for remaining portal screens.
-- Preserved FastAPI + Supabase integration, role mapping, and demo/live separation.
+## Maintenance
 
-## When the archive is added
-
-1. Place `rtgs-frontend-new.zip` at the repository root or `frontend/`.
-2. Extract to a read-only reference folder (e.g. `design/reference/rtgs/`) — do **not** replace the Vite app.
-3. Diff typography, spacing, and component patterns against `frontend/src/styles.css` and port deltas into React components.
+1. Keep the ZIP as a read-only reference; extract to `design/reference/rtgs/` when updating.
+2. Diff typography and spacing against `frontend/src/styles.css` and port deltas into React — never replace the Vite app with vanilla JS.
 
 ## Demo-only reference behaviors (never ship as production)
 

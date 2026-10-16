@@ -37,15 +37,15 @@ Exit code 0 only if health + create grievance succeed against configured Postgre
 
 Record results in your run log; do not claim live verification unless each step was executed against dev.
 
-## Phase 6 status (this repo checkout)
+## Phase 6B status (this repo checkout)
 
 | Area | Result |
 |------|--------|
-| Design archive `rtgs-frontend-new.zip` | **Missing** — see [PHASE6_DESIGN_ARCHIVE.md](PHASE6_DESIGN_ARCHIVE.md) |
-| Frontend tests | 9 passed (roles, i18n parity, locale switch render) |
+| Design archive `rtgs-frontend-new.zip` | **Present** — extracted to `design/reference/rtgs/`; see [PHASE6_DESIGN_ARCHIVE.md](PHASE6_DESIGN_ARCHIVE.md) |
+| Frontend tests | 12 passed (roles, i18n parity, locale switch, portal workflow render) |
 | Frontend build | `npm run build` |
 | Backend pytest | 27 passed, 1 skipped |
-| Live Supabase | **Pending** (no committed `.env`) |
+| Live Supabase Auth / Postgres / Storage | **Pending** — no committed `.env`; use dev credentials per setup below |
 
 ## Phase 5 status (this repo checkout)
 
