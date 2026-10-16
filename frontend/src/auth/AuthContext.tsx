@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabaseReady]);
 
   const workspace = mapApiRoleToWorkspace(profile?.role);
-  const liveApi = canUseLiveApi(Boolean(session));
+  const liveApi = canUseLiveApi(status === 'authenticated' && profileStatus === 'ready');
 
   const value = useMemo(
     () => ({

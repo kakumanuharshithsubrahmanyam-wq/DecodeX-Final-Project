@@ -31,7 +31,7 @@ const en = {
   },
   mode: {
     demo: 'DEMO SAMPLE DATA',
-    live: 'Connected to development API',
+    live: 'Live — connected to RTGS',
     offline: 'Configure Supabase and API to use live data',
   },
   auth: {

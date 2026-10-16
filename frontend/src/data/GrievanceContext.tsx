@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { api } from '@/lib/api-client';
-import { canUseLiveApi, isExplicitDemoMode } from '@/lib/config';
+import { isExplicitDemoMode } from '@/lib/config';
 import { localizedApiError } from '@/lib/apiErrors';
 import { useI18n } from '@/i18n';
 import { detailToUi, summaryToUi, type UiGrievance } from '@/lib/grievance-mapper';
@@ -29,7 +29,7 @@ const GrievanceContextProvider = GrievanceContext.Provider;
 export function GrievanceProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const { t } = useI18n();
-  const live = canUseLiveApi(Boolean(auth.session));
+  const live = auth.liveApi;
   const demoOnly = isExplicitDemoMode() || !live;
 
   const [mode, setMode] = useState<DataMode>(demoOnly ? 'demo' : 'empty');
@@ -83,6 +83,20 @@ export function GrievanceProvider({ children }: { children: ReactNode }) {
       setMode('empty');
     }
   }, [auth.status, live, demoOnly, refresh]);
+
+  useEffect(() => {
+    if (!live) return;
+    const id = window.setInterval(() => void refresh(), 30_000);
+    const onFocus = () => void refresh();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void refresh();
+    });
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [live, refresh]);
 
   const update = useCallback(
     async (id: string, patch: Partial<UiGrievance>, message?: string) => {

@@ -20,6 +20,7 @@ export function isExplicitDemoMode(): boolean {
   return true;
 }
 
-export function canUseLiveApi(sessionPresent: boolean): boolean {
-  return isSupabaseConfigured() && isApiConfigured() && sessionPresent && !isExplicitDemoMode();
+/** True when the signed-in user should load grievances from the FastAPI backend (not demo seed). */
+export function canUseLiveApi(authenticatedWithProfile: boolean): boolean {
+  return isSupabaseConfigured() && isApiConfigured() && authenticatedWithProfile && !isExplicitDemoMode();
 }
