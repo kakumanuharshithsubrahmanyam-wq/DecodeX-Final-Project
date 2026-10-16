@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus(s ? 'authenticated' : 'guest');
     });
     return () => sub.data.subscription.unsubscribe();
-  }, [supabaseReady, refreshProfile]);
+  }, [supabaseReady]);
 
   useEffect(() => {
     if (status === 'authenticated') {
